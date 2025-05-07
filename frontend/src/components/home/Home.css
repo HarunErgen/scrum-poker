@@ -1,0 +1,31 @@
+.home-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.error-message {
+  color: var(--danger-color);
+  text-align: center;
+  padding: 0.5rem;
+  margin-top: 1rem;
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: var(--border-radius);
+}
+
+@media (max-width: 768px) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .actions button {
+    margin-left: 0 !important;
+    margin-top: 0.5rem;
+  }
+}

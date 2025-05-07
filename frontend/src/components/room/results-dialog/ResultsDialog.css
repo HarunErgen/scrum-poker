@@ -1,0 +1,57 @@
+.results-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.results-dialog {
+    width: 100%;
+    max-width: 500px;
+    padding: 2rem;
+}
+
+.results-dialog h3 {
+    text-align: center;
+}
+
+.results-dialog .vote-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+.results-dialog .vote-count {
+    background-color: #f8f9fa;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.results-dialog .vote {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.results-dialog .count {
+    font-size: 1.25rem;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}

@@ -1,0 +1,34 @@
+# Environment Variables
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor Settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Dependency Directories
+node_modules/
+/.pnp
+.pnp.js
+
+# Test and Coverage Outputs
+coverage/
+
+# Build Output
+build/
+
+# OS and Miscellaneous Files
+.DS_Store
+
+# Log Files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
