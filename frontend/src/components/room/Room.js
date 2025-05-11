@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './Room.css';
 
 import VotingCard from './voting-card/VotingCard';
@@ -11,6 +10,7 @@ import Room from '../../models/Room';
 import VoteOption from '../../models/VoteOption';
 import SessionStorage from '../../utils/SessionStorage';
 import WebSocketService from '../../utils/WebSocketService';
+import api from "../../utils/AxiosInstance";
 
 const RoomComponent = () => {
   const { roomId } = useParams();
@@ -53,7 +53,7 @@ const RoomComponent = () => {
     SessionStorage.saveSession(userId, userName, roomId);
 
     try {
-      const response = await axios.get(`/api/rooms/${roomId}`);
+      const response = await api.get(`/api/rooms/${roomId}`);
       const room = Room.fromApiResponse(response.data);
       setRoomData(room);
       setLoading(false);
@@ -89,7 +89,7 @@ const RoomComponent = () => {
 
   const handleJoinRoom = async (enteredName) => {
     try {
-      const response = await axios.post(`/api/rooms/${roomId}/join`, {
+      const response = await api.post(`/api/rooms/${roomId}/join`, {
         user_name: enteredName
       });
 
@@ -110,7 +110,7 @@ const RoomComponent = () => {
 
   const handleLeaveRoom = async () => {
     try {
-      await axios.post(`/api/rooms/${roomId}/leave`, {
+      await api.post(`/api/rooms/${roomId}/leave`, {
         user_id: userId
       });
     } catch (err) {
@@ -125,7 +125,7 @@ const RoomComponent = () => {
     if (selectedVote === vote) {
       setSelectedVote('');
       try {
-        await axios.post(`/api/rooms/${roomId}/vote`, {
+        await api.post(`/api/rooms/${roomId}/vote`, {
           user_id: userId,
           vote: ''
         });
@@ -135,7 +135,7 @@ const RoomComponent = () => {
     } else {
       setSelectedVote(vote);
       try {
-        await axios.post(`/api/rooms/${roomId}/vote`, {
+        await api.post(`/api/rooms/${roomId}/vote`, {
           user_id: userId,
           vote: vote
         });
@@ -147,7 +147,7 @@ const RoomComponent = () => {
 
   const handleRevealVotes = async () => {
     try {
-      await axios.post(`/api/rooms/${roomId}/reveal`, {
+      await api.post(`/api/rooms/${roomId}/reveal`, {
         user_id: userId
       });
     } catch (err) {
@@ -157,7 +157,7 @@ const RoomComponent = () => {
 
   const handleResetVotes = async () => {
     try {
-      await axios.post(`/api/rooms/${roomId}/reset`, {
+      await api.post(`/api/rooms/${roomId}/reset`, {
         user_id: userId
       });
       setSelectedVote('');
@@ -169,7 +169,7 @@ const RoomComponent = () => {
 
   const handleTransferRole = async (newScrumMasterId) => {
     try {
-      await axios.post(`/api/rooms/${roomId}/transfer`, {
+      await api.post(`/api/rooms/${roomId}/transfer`, {
         user_id: userId,
         new_scrum_master_id: newScrumMasterId
       });

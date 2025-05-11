@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './Home.css';
 
 import SessionStorage from '../../utils/SessionStorage';
+import api from "../../utils/AxiosInstance";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const Home = () => {
     }
 
     try {
-      const response = await axios.post('/api/rooms', {
+      const response = await api.post('/api/rooms', {
         name: roomName,
         user_name: userName
       });
@@ -60,7 +60,7 @@ const Home = () => {
     }
 
     try {
-      const response = await axios.post(`/api/rooms/${roomId}/join`, {
+      const response = await api.post(`/api/rooms/${roomId}/join`, {
         user_name: userName
       });
 
