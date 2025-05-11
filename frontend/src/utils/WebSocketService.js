@@ -12,9 +12,7 @@ class WebSocketService {
       this.disconnect();
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.host;
-    this.ws = new WebSocket(`${protocol}://${host}/ws/${this.roomId}?user_id=${this.userId}`);
+    this.ws = new WebSocket(`${process.env.REACT_APP_API_URL}/ws/${this.roomId}?user_id=${this.userId}`);
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');
