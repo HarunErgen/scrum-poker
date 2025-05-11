@@ -66,6 +66,21 @@ func (r *Room) TransferScrumMaster(newScrumMasterID string) {
 	r.ScrumMaster = newScrumMasterID
 }
 
+func (r *Room) AssignRandomScrumMaster(participants map[string]*User) {
+	var candidates []string
+	for userID := range participants {
+		candidates = append(candidates, userID)
+	}
+
+	if len(candidates) == 0 {
+		return
+	}
+
+	randomIndex := time.Now().UnixNano() % int64(len(candidates))
+	newScrumMasterId := candidates[randomIndex]
+	r.TransferScrumMaster(newScrumMasterId)
+}
+
 func (r *Room) ToJSON() map[string]interface{} {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()

@@ -162,7 +162,10 @@ func (h *Hub) handleUnregistration(c *Client) {
 
 			close(c.send)
 
-			if len(roomData.clients) == 0 {
+			shouldDeleteRoom := len(roomData.clients) == 0
+			roomData.mu.Unlock()
+
+			if shouldDeleteRoom {
 				h.roomsMu.Lock()
 				delete(h.rooms, c.roomID)
 				h.roomsMu.Unlock()
@@ -171,6 +174,8 @@ func (h *Hub) handleUnregistration(c *Client) {
 				log.Printf("Client unregistered from room %s. Total clients: %d",
 					c.roomID, len(roomData.clients))
 			}
+
+			roomData.mu.Lock()
 
 			go h.handleDisconnection(c)
 		}
@@ -196,16 +201,26 @@ func (h *Hub) handleDisconnection(client *Client) {
 			return
 		}
 
-		if user, ok := room.Participants[userID]; ok {
-			user.IsActive = false
+		if _, ok := room.Participants[userID]; ok {
 
-			_, err = db.DB.Exec(
-				"UPDATE users SET is_active = $1 WHERE id = $2",
-				false, userID,
-			)
-			if err != nil {
-				log.Printf("Error updating user status: %v", err)
+			if err := db.DeleteUser(userID); err != nil {
+				log.Printf("Error deleting user %s: %v", userID, err)
 				return
+			}
+
+			delete(room.Participants, userID)
+
+			if len(room.Participants) == 0 {
+				if err := db.DeleteRoom(roomID); err != nil {
+					log.Printf("Error deleting room %s: %v", roomID, err)
+					return
+				}
+			} else if room.ScrumMaster == userID {
+				room.AssignRandomScrumMaster(room.Participants)
+				if err := db.UpdateScrumMaster(roomID, room.ScrumMaster); err != nil {
+					log.Printf("Error updating Scrum Master: %v", err)
+					return
+				}
 			}
 
 			go h.BroadcastRoomUpdate(roomID, room)

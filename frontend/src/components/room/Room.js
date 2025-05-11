@@ -5,6 +5,7 @@ import './Room.css';
 import VotingCard from './voting-card/VotingCard';
 import NamePromptDialog from './name-prompt-dialog/NamePromptDialog';
 import ResultsDialog from './results-dialog/ResultsDialog';
+import QRCodeDialog from './qr-code-dialog/QRCodeDialog';
 
 import Room from '../../models/Room';
 import VoteOption from '../../models/VoteOption';
@@ -23,6 +24,7 @@ const RoomComponent = () => {
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [showQRCodeDialog, setShowQRCodeDialog] = useState(false);
 
   const sessionData = SessionStorage.getSession();
   const userId = sessionData.userId;
@@ -178,11 +180,23 @@ const RoomComponent = () => {
     }
   };
 
+  const getRoomLink = () => {
+    return `${window.location.origin}/room/${roomId}`;
+  };
+
   const copyRoomLink = () => {
-    const roomLink = `${window.location.origin}/room/${roomId}`;
+    const roomLink = getRoomLink();
     navigator.clipboard.writeText(roomLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const showQRCode = () => {
+    setShowQRCodeDialog(true);
+  };
+
+  const hideQRCode = () => {
+    setShowQRCodeDialog(false);
   };
 
   if (showNamePrompt) {
@@ -212,6 +226,13 @@ const RoomComponent = () => {
             />
         )}
 
+        {showQRCodeDialog && (
+            <QRCodeDialog
+                url={getRoomLink()}
+                onClose={hideQRCode}
+            />
+        )}
+
         <div className="room-header card">
           <div className="room-info">
             <h2>{roomData.name}</h2>
@@ -219,6 +240,9 @@ const RoomComponent = () => {
               Room ID: {roomId}
               <button className="btn btn-sm" onClick={copyRoomLink}>
                 {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+              <button className="btn btn-sm" onClick={showQRCode} style={{ marginLeft: '0.5rem' }}>
+                Show QR Code
               </button>
             </div>
             <div className="connection-status">
@@ -249,26 +273,24 @@ const RoomComponent = () => {
           <h3>Participants</h3>
           <div className="participants-list">
             {roomData.getParticipantsArray().map((participant) => (
-                <div key={participant.id} className="participant">
-              <span className="participant-name">
-                {participant.name} {participant.id === roomData.scrumMaster && '(Scrum Master)'}
-              </span>
-                  {roomData.hasVoted(participant.id) && (
-                      <span className="vote-status">
-                  {roomData.votesRevealed
-                      ? `Voted: ${roomData.getUserVote(participant.id)}`
-                      : 'Voted'}
-                </span>
-                  )}
-                  {isScrumMaster && participant.id !== userId && (
-                      <button
-                          className="btn btn-sm"
-                          onClick={() => handleTransferRole(participant.id)}
-                      >
-                        Make Scrum Master
-                      </button>
-                  )}
-                </div>
+                  <div key={participant.id} className="participant">
+                    <span className="participant-name">
+                      {participant.name} {participant.id === roomData.scrumMaster && '(Scrum Master)'}
+                    </span>
+                    {roomData.hasVoted(participant.id) && (
+                        <span className="vote-status">
+                          {roomData.votesRevealed ? `Voted: ${roomData.getUserVote(participant.id)}` : 'Voted'}
+                        </span>
+                    )}
+                    {isScrumMaster && participant.id !== userId && (
+                        <button
+                            className="btn btn-sm"
+                            onClick={() => handleTransferRole(participant.id)}
+                        >
+                          Make Scrum Master
+                        </button>
+                    )}
+                  </div>
             ))}
           </div>
         </div>

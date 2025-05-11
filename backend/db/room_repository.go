@@ -21,6 +21,14 @@ func CreateRoom(room *models.Room) error {
 	return nil
 }
 
+func DeleteRoom(roomID string) error {
+	_, err := DB.Exec("DELETE FROM rooms WHERE id = $1", roomID)
+	if err != nil {
+		return fmt.Errorf("failed to delete room: %v", err)
+	}
+	return nil
+}
+
 func GetRoom(roomID string) (*models.Room, error) {
 	var room models.Room
 	var createdAt time.Time
@@ -43,7 +51,7 @@ func GetRoom(roomID string) (*models.Room, error) {
 	room.VotesRevealed = false
 
 	rows, err := DB.Query(`
-		SELECT u.id, u.name, u.created_at, u.is_active
+		SELECT u.id, u.name, u.created_at
 		FROM users u
 		JOIN room_participants rp ON u.id = rp.user_id
 		WHERE rp.room_id = $1
@@ -56,7 +64,7 @@ func GetRoom(roomID string) (*models.Room, error) {
 	for rows.Next() {
 		user := new(models.User)
 		var userCreatedAt time.Time
-		err := rows.Scan(&user.ID, &user.Name, &userCreatedAt, &user.IsActive)
+		err := rows.Scan(&user.ID, &user.Name, &userCreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %v", err)
 		}
@@ -97,16 +105,16 @@ func AddParticipantToRoom(roomID string, user *models.User) error {
 
 	if count == 0 {
 		_, err = tx.Exec(
-			"INSERT INTO users (id, name, created_at, is_active) VALUES ($1, $2, $3, $4)",
-			user.ID, user.Name, user.CreatedAt, user.IsActive,
+			"INSERT INTO users (id, name, created_at) VALUES ($1, $2, $3)",
+			user.ID, user.Name, user.CreatedAt,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create user: %v", err)
 		}
 	} else {
 		_, err = tx.Exec(
-			"UPDATE users SET name = $1, is_active = $2 WHERE id = $3",
-			user.Name, user.IsActive, user.ID,
+			"UPDATE users SET name = $1 WHERE id = $2",
+			user.Name, user.ID,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %v", err)
@@ -148,37 +156,6 @@ func RemoveParticipantFromRoom(roomID, userID string) error {
 		return fmt.Errorf("failed to remove votes: %v", err)
 	}
 
-	return nil
-}
-
-func AddVote(roomID, userID, vote string) error {
-	_, err := DB.Exec(
-		`INSERT INTO votes (room_id, user_id, vote) 
-		 VALUES ($1, $2, $3) 
-		 ON CONFLICT (room_id, user_id) DO UPDATE SET vote = $3`,
-		roomID, userID, vote,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to add vote: %v", err)
-	}
-
-	return nil
-}
-
-func ResetVotes(roomID string) error {
-	_, err := DB.Exec("DELETE FROM votes WHERE room_id = $1", roomID)
-	if err != nil {
-		return fmt.Errorf("failed to reset votes: %v", err)
-	}
-
-	return nil
-}
-
-func DeleteVote(roomID, userID string) error {
-	_, err := DB.Exec("DELETE FROM votes WHERE room_id = $1 AND user_id = $2", roomID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to delete vote: %v", err)
-	}
 	return nil
 }
 

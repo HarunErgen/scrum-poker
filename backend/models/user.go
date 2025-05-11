@@ -8,7 +8,6 @@ type User struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
-	IsActive  bool      `json:"is_active"`
 }
 
 func NewUser(id, name string) *User {
@@ -16,7 +15,6 @@ func NewUser(id, name string) *User {
 		ID:        id,
 		Name:      name,
 		CreatedAt: time.Now(),
-		IsActive:  true,
 	}
 }
 
@@ -25,6 +23,5 @@ func (u *User) ToJSON() map[string]interface{} {
 		"id":         u.ID,
 		"name":       u.Name,
 		"created_at": u.CreatedAt,
-		"is_active":  u.IsActive,
 	}
 }

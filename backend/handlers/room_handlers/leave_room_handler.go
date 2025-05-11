@@ -8,7 +8,6 @@ import (
 	"github.com/scrum-poker/backend/utils"
 	"github.com/scrum-poker/backend/websocket"
 	"net/http"
-	"time"
 )
 
 type LeaveRoomRequest struct {
@@ -32,6 +31,11 @@ func LeaveRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, ok := room.Participants[userID]; !ok {
+		http.Error(w, "User not in room", http.StatusForbidden)
+		return
+	}
+
 	if room.ScrumMaster == userID {
 		participantsCopy := make(map[string]*models.User)
 		for id, user := range room.Participants {
@@ -40,19 +44,13 @@ func LeaveRoomHandler(w http.ResponseWriter, r *http.Request) {
 		delete(participantsCopy, userID)
 
 		if len(participantsCopy) > 0 {
-			newScrumMasterID := selectRandomNextScrumMaster(participantsCopy)
-			room.ScrumMaster = newScrumMasterID
+			room.AssignRandomScrumMaster(participantsCopy)
 
-			if err := db.UpdateScrumMaster(roomID, newScrumMasterID); err != nil {
+			if err := db.UpdateScrumMaster(roomID, room.ScrumMaster); err != nil {
 				http.Error(w, "Failed to update Scrum Master", http.StatusInternalServerError)
 				return
 			}
 		}
-	}
-
-	if _, ok := room.Participants[userID]; !ok {
-		http.Error(w, "User not in room", http.StatusForbidden)
-		return
 	}
 
 	room.RemoveParticipant(userID)
@@ -62,20 +60,18 @@ func LeaveRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := db.DeleteUser(userID); err != nil {
+		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		return
+	}
+
+	if len(room.Participants) == 0 {
+		if err := db.DeleteRoom(roomID); err != nil {
+			http.Error(w, "Failed to delete room", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	websocket.CommonHub.BroadcastRoomUpdate(roomID, room)
 	utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
-}
-
-func selectRandomNextScrumMaster(participants map[string]*models.User) string {
-	var candidates []string
-	for userID := range participants {
-		candidates = append(candidates, userID)
-	}
-
-	if len(candidates) == 0 {
-		return ""
-	}
-
-	randomIndex := time.Now().UnixNano() % int64(len(candidates))
-	return candidates[randomIndex]
 }

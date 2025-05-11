@@ -1,0 +1,66 @@
+.qr-code-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.qr-code-dialog {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 350px;
+  max-width: 90%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.qr-code-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.qr-code-dialog-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.qr-code-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.qr-code-url {
+  text-align: center;
+  word-break: break-all;
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.qr-code-url p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
+}
