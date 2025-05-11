@@ -34,7 +34,7 @@ docker-compose up -d
 ```
 
 3. Access the application:
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost
    - Backend API: http://localhost:8080/api/health
 
 ## Development
@@ -92,7 +92,8 @@ go run main.go
 #### Environment Variables
 
 - `BACKEND_PORT` - Server port (default: 8080)
-- `FRONTEND_PORT` - Port for the frontend application (default: 3000)
+- `FRONTEND_PORT` - Port for the frontend application (default: 80)
+- `REACT_APP_API_URL` - API url (default: http://localhost:8080)
 - `DB_HOST` - PostgreSQL host
 - `DB_PORT` - PostgreSQL port
 - `DB_USER` - PostgreSQL user
@@ -126,8 +127,7 @@ go run main.go
       "user-id": {
         "id": "user-id",
         "name": "John Doe",
-        "created_at": "2023-01-01T12:00:00Z",
-        "is_active": true
+        "created_at": "2023-01-01T12:00:00Z"
       }
     },
     "votes": {},
@@ -163,8 +163,7 @@ go run main.go
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
@@ -173,8 +172,7 @@ go run main.go
     "user": {
       "id": "user-id",
       "name": "Jane Smith",
-      "created_at": "2023-01-01T12:05:00Z",
-      "is_active": true
+      "created_at": "2023-01-01T12:05:00Z"
     }
   }
   ```
@@ -205,8 +203,7 @@ go run main.go
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
@@ -238,8 +235,7 @@ go run main.go
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {
@@ -273,8 +269,7 @@ go run main.go
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
@@ -307,14 +302,12 @@ go run main.go
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:00:00Z"
         },
         "new-scrum-master-id": {
           "id": "new-scrum-master-id",
           "name": "Jane Smith",
-          "created_at": "2023-01-01T12:05:00Z",
-          "is_active": true
+          "created_at": "2023-01-01T12:05:00Z"
         }
       },
       "votes": {},
@@ -343,8 +336,7 @@ go run main.go
           "user-id": {
             "id": "user-id",
             "name": "John Doe",
-            "created_at": "2023-01-01T12:00:00Z",
-            "is_active": true
+            "created_at": "2023-01-01T12:00:00Z"
           }
         },
         "votes": {},
