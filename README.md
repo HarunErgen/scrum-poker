@@ -17,6 +17,7 @@ The project is organized into two main components:
 - Real-time voting using Fibonacci sequence
 - Vote revelation controlled by the Scrum Master
 - Responsive design for desktop and mobile devices
+- Session management for short-time disconnnections.
 
 ## Getting Started
 
@@ -73,7 +74,7 @@ npm run build
 
 #### Prerequisites
 
-- Go 1.23+
+- Go 1.23.0
 - PostgreSQL (or use the Docker Compose setup)
 
 #### Installation
@@ -100,6 +101,7 @@ go run main.go
 - `DB_PASSWORD` - PostgreSQL password
 - `DB_NAME` - PostgreSQL database name
 - `DB_SSLMODE` - PostgreSQL SSL mode
+- `ALLOWED_ORIGINS` - Allowed CORS origins.
 
 ## API Documentation
 
@@ -113,7 +115,7 @@ go run main.go
   ```json
   {
     "name": "Sprint Planning",
-    "user_name": "John Doe"
+    "userName": "John Doe"
   }
   ```
 - **Response**:
@@ -121,17 +123,18 @@ go run main.go
   {
     "id": "room-id",
     "name": "Sprint Planning",
-    "created_at": "2023-01-01T12:00:00Z",
-    "scrum_master": "user-id",
+    "createdAt": "2023-01-01T12:00:00Z",
+    "scrumMaster": "user-id",
     "participants": {
       "user-id": {
         "id": "user-id",
         "name": "John Doe",
-        "created_at": "2023-01-01T12:00:00Z"
+        "isOnline": true,
+        "createdAt": "2023-01-01T12:00:00Z"
       }
     },
     "votes": {},
-    "votes_revealed": false
+    "votesRevealed": false
   }
   ```
 
@@ -148,7 +151,7 @@ go run main.go
 - **Request Body**:
   ```json
   {
-    "user_name": "Jane Smith"
+    "userName": "Jane Smith"
   }
   ```
 - **Response**:
