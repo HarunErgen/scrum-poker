@@ -47,8 +47,8 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   r.TLS != nil,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 	})
 
 	if err := db.UpdateUserOnlineStatus(userId, true); err != nil {
@@ -147,9 +147,9 @@ func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   r.TLS != nil,
+		Secure:   true,
 		MaxAge:   -1,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 	})
 
 	utils.PrepareJSONResponse(w, http.StatusOK, map[string]string{
