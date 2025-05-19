@@ -55,3 +55,21 @@
     gap: 1rem;
     margin-top: 2rem;
 }
+
+.results-dialog .average-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    font-size: 1.25rem;
+}
+
+.average-value {
+    font-weight: 600;
+}
+
+.average-rounded {
+    opacity: 0.75;
+    font-size: 0.9em;
+}

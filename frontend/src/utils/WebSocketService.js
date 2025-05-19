@@ -12,7 +12,7 @@ class WebSocketService {
       this.disconnect();
     }
 
-    this.ws = new WebSocket(`${process.env.REACT_APP_API_URL}/ws/${this.roomId}?user_id=${this.userId}`);
+    this.ws = new WebSocket(`${process.env.REACT_APP_API_URL}/ws/${this.roomId}?userId=${this.userId}`);
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');

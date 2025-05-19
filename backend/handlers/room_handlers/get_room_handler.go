@@ -9,9 +9,9 @@ import (
 
 func GetRoomHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	roomID := vars["roomID"]
+	roomId := vars["roomId"]
 
-	room, err := db.GetRoom(roomID)
+	room, err := db.GetRoom(roomId)
 	if err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return

@@ -12,17 +12,17 @@ import (
 
 type CreateRoomRequest struct {
 	Name     string `json:"name"`
-	UserName string `json:"user_name"`
+	UserName string `json:"userName"`
 }
 
 type RoomResponse struct {
-	ID            string                 `json:"id"`
+	Id            string                 `json:"id"`
 	Name          string                 `json:"name"`
-	CreatedAt     time.Time              `json:"created_at"`
-	ScrumMaster   string                 `json:"scrum_master"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	ScrumMaster   string                 `json:"scrumMaster"`
 	Participants  map[string]interface{} `json:"participants"`
 	Votes         map[string]string      `json:"votes"`
-	VotesRevealed bool                   `json:"votes_revealed"`
+	VotesRevealed bool                   `json:"votesRevealed"`
 }
 
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +41,11 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomID := uuid.New().String()
-	userID := uuid.New().String()
+	roomId := uuid.New().String()
+	userId := uuid.New().String()
 
-	user := models.NewUser(userID, req.UserName)
-	room := models.NewRoom(roomID, req.Name, userID)
+	user := models.NewUser(userId, req.UserName)
+	room := models.NewRoom(roomId, req.Name, userId)
 	room.AddParticipant(user)
 
 	if err := db.CreateRoom(room); err != nil {
@@ -53,17 +53,17 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.AddParticipantToRoom(roomID, user); err != nil {
+	if err := db.AddParticipantToRoom(roomId, user); err != nil {
 		http.Error(w, "Failed to add participant to room", http.StatusInternalServerError)
 		return
 	}
 
 	resp := RoomResponse{
-		ID:            room.ID,
+		Id:            room.Id,
 		Name:          room.Name,
 		CreatedAt:     room.CreatedAt,
 		ScrumMaster:   room.ScrumMaster,
-		Participants:  map[string]interface{}{userID: user.ToJSON()},
+		Participants:  map[string]interface{}{userId: user.ToJSON()},
 		Votes:         make(map[string]string),
 		VotesRevealed: false,
 	}

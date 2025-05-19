@@ -4,17 +4,21 @@ import (
 	"encoding/json"
 	"github.com/scrum-poker/backend/db"
 	"github.com/scrum-poker/backend/models"
+	"github.com/scrum-poker/backend/session"
 	"log"
 	"sync"
 	"time"
 )
 
-var CommonHub *Hub
+var GlobalHub *Hub
 
 func Init() {
-	CommonHub = newHub()
-	go CommonHub.run()
-	go CommonHub.startHealthCheck()
+	GlobalHub = newHub()
+	go GlobalHub.run()
+
+	session.InitSessionManager(func(roomId string, room *models.Room) {
+		GlobalHub.BroadcastRoomUpdate(roomId, room)
+	})
 }
 
 type RoomData struct {
@@ -48,19 +52,19 @@ func (h *Hub) run() {
 	}
 }
 
-func (h *Hub) getOrCreateRoom(roomID string) *RoomData {
+func (h *Hub) getOrCreateRoom(roomId string) *RoomData {
 	h.roomsMu.RLock()
-	roomData, exists := h.rooms[roomID]
+	roomData, exists := h.rooms[roomId]
 	h.roomsMu.RUnlock()
 
 	if !exists {
 		h.roomsMu.Lock()
-		roomData, exists = h.rooms[roomID]
+		roomData, exists = h.rooms[roomId]
 		if !exists {
 			roomData = &RoomData{
 				clients: make(map[*Client]bool),
 			}
-			h.rooms[roomID] = roomData
+			h.rooms[roomId] = roomData
 		}
 		h.roomsMu.Unlock()
 	}
@@ -75,9 +79,9 @@ func (h *Hub) handleRegistration(c *Client) {
 		}
 	}()
 
-	log.Printf("Hub received register request for client %s", c.userID)
+	log.Printf("Hub received register request for client %s", c.userId)
 
-	roomData := h.getOrCreateRoom(c.roomID)
+	roomData := h.getOrCreateRoom(c.roomId)
 
 	lockAcquired := make(chan bool, 1)
 	go func() {
@@ -89,11 +93,11 @@ func (h *Hub) handleRegistration(c *Client) {
 	case <-lockAcquired:
 		defer roomData.mu.Unlock()
 
-		log.Printf("Processing registration for client %s", c.userID)
+		log.Printf("Processing registration for client %s", c.userId)
 
 		for existingClient := range roomData.clients {
-			if existingClient.userID == c.userID {
-				log.Printf("Found existing client with userID %s, replacing", c.userID)
+			if existingClient.userId == c.userId {
+				log.Printf("Found existing client with userId %s, replacing", c.userId)
 
 				delete(roomData.clients, existingClient)
 				close(existingClient.send)
@@ -106,7 +110,7 @@ func (h *Hub) handleRegistration(c *Client) {
 
 		roomData.clients[c] = true
 		log.Printf("Client registered in room %s. Total clients: %d",
-			c.roomID, len(roomData.clients))
+			c.roomId, len(roomData.clients))
 
 		select {
 		case c.registrationComplete <- true:
@@ -114,7 +118,7 @@ func (h *Hub) handleRegistration(c *Client) {
 		}
 
 	case <-time.After(5 * time.Second):
-		log.Printf("Timeout waiting for lock in registration for client %s", c.userID)
+		log.Printf("Timeout waiting for lock in registration for client %s", c.userId)
 		select {
 		case c.registrationComplete <- false:
 		default:
@@ -129,14 +133,14 @@ func (h *Hub) handleUnregistration(c *Client) {
 		}
 	}()
 
-	log.Printf("Hub received unregister request for client %s", c.userID)
+	log.Printf("Hub received unregister request for client %s", c.userId)
 
 	h.roomsMu.RLock()
-	roomData, roomExists := h.rooms[c.roomID]
+	roomData, roomExists := h.rooms[c.roomId]
 	h.roomsMu.RUnlock()
 
 	if !roomExists {
-		log.Printf("Room %s not found for client %s", c.roomID, c.userID)
+		log.Printf("Room %s not found for client %s", c.roomId, c.userId)
 		return
 	}
 
@@ -150,7 +154,7 @@ func (h *Hub) handleUnregistration(c *Client) {
 	case <-lockAcquired:
 		defer roomData.mu.Unlock()
 
-		log.Printf("Processing unregistration for client %s", c.userID)
+		log.Printf("Processing unregistration for client %s", c.userId)
 
 		if _, ok := roomData.clients[c]; ok {
 			delete(roomData.clients, c)
@@ -167,12 +171,12 @@ func (h *Hub) handleUnregistration(c *Client) {
 
 			if shouldDeleteRoom {
 				h.roomsMu.Lock()
-				delete(h.rooms, c.roomID)
+				delete(h.rooms, c.roomId)
 				h.roomsMu.Unlock()
-				log.Printf("Room %s deleted (no clients)", c.roomID)
+				log.Printf("Room %s deleted (no clients)", c.roomId)
 			} else {
 				log.Printf("Client unregistered from room %s. Total clients: %d",
-					c.roomID, len(roomData.clients))
+					c.roomId, len(roomData.clients))
 			}
 
 			roomData.mu.Lock()
@@ -180,10 +184,10 @@ func (h *Hub) handleUnregistration(c *Client) {
 			go h.handleDisconnection(c)
 		}
 
-		log.Printf("Unregistration complete for client %s", c.userID)
+		log.Printf("Unregistration complete for client %s", c.userId)
 
 	case <-time.After(5 * time.Second):
-		log.Printf("Timeout waiting for lock in unregistration for client %s", c.userID)
+		log.Printf("Timeout waiting for lock in unregistration for client %s", c.userId)
 		if c.conn != nil {
 			c.conn.Close()
 		}
@@ -191,46 +195,46 @@ func (h *Hub) handleUnregistration(c *Client) {
 }
 
 func (h *Hub) handleDisconnection(client *Client) {
-	roomID := client.roomID
-	userID := client.userID
+	roomId := client.roomId
+	userId := client.userId
 
 	go func() {
-		room, err := db.GetRoom(roomID)
+		room, err := db.GetRoom(roomId)
 		if err != nil {
-			log.Printf("Error getting room %s: %v", roomID, err)
+			log.Printf("Error getting room %s: %v", roomId, err)
 			return
 		}
 
-		if _, ok := room.Participants[userID]; ok {
-
-			if err := db.DeleteUser(userID); err != nil {
-				log.Printf("Error deleting user %s: %v", userID, err)
+		if _, ok := room.Participants[userId]; ok {
+			if err := db.UpdateUserOnlineStatus(userId, false); err != nil {
+				log.Printf("Error updating user online status: %v", err)
 				return
 			}
 
-			delete(room.Participants, userID)
-
-			if len(room.Participants) == 0 {
-				if err := db.DeleteRoom(roomID); err != nil {
-					log.Printf("Error deleting room %s: %v", roomID, err)
-					return
+			existingSession, err := db.GetSessionByUserID(userId)
+			if err == nil && existingSession != nil {
+				existingSession.Refresh(session.SessionTTL)
+				if err := db.UpdateSession(existingSession); err != nil {
+					log.Printf("Error updating session: %v", err)
 				}
-			} else if room.ScrumMaster == userID {
-				room.AssignRandomScrumMaster(room.Participants)
-				if err := db.UpdateScrumMaster(roomID, room.ScrumMaster); err != nil {
-					log.Printf("Error updating Scrum Master: %v", err)
-					return
+			} else {
+				_, err = session.GlobalManager.CreateSession(userId, roomId)
+				if err != nil {
+					log.Printf("Error creating session: %v", err)
 				}
 			}
 
-			go h.BroadcastRoomUpdate(roomID, room)
+			updatedRoom, err := db.GetRoom(roomId)
+			if err == nil {
+				go h.BroadcastRoomUpdate(roomId, updatedRoom)
+			}
 		}
 	}()
 }
 
-func (h *Hub) Broadcast(roomID string, message []byte) {
+func (h *Hub) Broadcast(roomId string, message []byte) {
 	h.roomsMu.RLock()
-	roomData, roomExists := h.rooms[roomID]
+	roomData, roomExists := h.rooms[roomId]
 	h.roomsMu.RUnlock()
 
 	if !roomExists {
@@ -247,17 +251,17 @@ func (h *Hub) Broadcast(roomID string, message []byte) {
 			select {
 			case h.unregister <- client:
 			default:
-				log.Printf("Failed to queue unregister for client %s - channel full", client.userID)
+				log.Printf("Failed to queue unregister for client %s - channel full", client.userId)
 			}
 			delete(roomData.clients, client)
 		}
 	}
 }
 
-func (h *Hub) BroadcastRoomUpdate(roomID string, room *models.Room) {
+func (h *Hub) BroadcastRoomUpdate(roomId string, room *models.Room) {
 	msg := Message{
 		Type:    "room_update",
-		RoomID:  roomID,
+		RoomId:  roomId,
 		Payload: room.ToJSON(),
 	}
 
@@ -267,63 +271,5 @@ func (h *Hub) BroadcastRoomUpdate(roomID string, room *models.Room) {
 		return
 	}
 
-	h.Broadcast(roomID, msgBytes)
-}
-
-func (h *Hub) startHealthCheck() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		<-ticker.C
-		h.checkConnections()
-	}
-}
-
-func (h *Hub) checkConnections() {
-	now := time.Now()
-	timeout := 2 * pongWait
-
-	h.roomsMu.RLock()
-	roomsToCheck := make([]string, 0, len(h.rooms))
-	for roomID := range h.rooms {
-		roomsToCheck = append(roomsToCheck, roomID)
-	}
-	h.roomsMu.RUnlock()
-
-	for _, roomID := range roomsToCheck {
-		h.roomsMu.RLock()
-		roomData, roomExists := h.rooms[roomID]
-		h.roomsMu.RUnlock()
-
-		if !roomExists {
-			continue
-		}
-
-		var clientsToRemove []*Client
-
-		roomData.mu.Lock()
-		for client := range roomData.clients {
-			client.mu.Lock()
-			lastPing := client.lastPingTime
-			client.mu.Unlock()
-
-			if now.Sub(lastPing) > timeout {
-				clientsToRemove = append(clientsToRemove, client)
-			}
-		}
-		roomData.mu.Unlock()
-
-		for _, client := range clientsToRemove {
-			log.Printf("Client %s has timed out, removing", client.userID)
-
-			select {
-			case h.unregister <- client:
-			default:
-				if client.conn != nil {
-					client.conn.Close()
-				}
-			}
-		}
-	}
+	h.Broadcast(roomId, msgBytes)
 }

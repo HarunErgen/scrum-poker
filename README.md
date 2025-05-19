@@ -137,13 +137,13 @@ go run main.go
 
 #### Get Room Details
 
-- **URL**: `/api/rooms/{roomID}`
+- **URL**: `/api/rooms/{roomId}`
 - **Method**: `GET`
 - **Response**: Room details (same format as above)
 
 #### Join a Room
 
-- **URL**: `/api/rooms/{roomID}/join`
+- **URL**: `/api/rooms/{roomId}/join`
 - **Method**: `POST`
 - **Request Body**:
   ```json
@@ -181,7 +181,7 @@ go run main.go
 
 #### Submit a Vote
 
-- **URL**: `/api/rooms/{roomID}/vote`
+- **URL**: `/api/rooms/{roomId}/vote`
 - **Method**: `POST`
 - **Request Body**:
   ```json
@@ -214,7 +214,7 @@ go run main.go
 
 #### Reveal Votes
 
-- **URL**: `/api/rooms/{roomID}/reveal`
+- **URL**: `/api/rooms/{roomId}/reveal`
 - **Method**: `POST`
 - **Request Body**:
   ```json
@@ -248,7 +248,7 @@ go run main.go
 
 #### Reset Votes
 
-- **URL**: `/api/rooms/{roomID}/reset`
+- **URL**: `/api/rooms/{roomId}/reset`
 - **Method**: `POST`
 - **Request Body**:
   ```json
@@ -280,7 +280,7 @@ go run main.go
 
 #### Transfer Scrum Master Role
 
-- **URL**: `/api/rooms/{roomID}/transfer`
+- **URL**: `/api/rooms/{roomId}/transfer`
 - **Method**: `POST`
 - **Request Body**:
   ```json
@@ -318,7 +318,7 @@ go run main.go
 
 ### WebSocket
 
-- **URL**: `/ws/{roomID}?user_id={userID}`
+- **URL**: `/ws/{roomId}?user_id={userId}`
 - **Protocol**: WebSocket
 - **Messages**:
   - Room updates are sent as JSON with the following format:

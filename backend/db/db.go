@@ -60,7 +60,8 @@ func createTables() error {
 		CREATE TABLE IF NOT EXISTS users (
 			id VARCHAR(36) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			is_online BOOLEAN NOT NULL DEFAULT TRUE
 		)
 	`)
 	if err != nil {
@@ -92,6 +93,21 @@ func createTables() error {
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create votes table: %v", err)
+	}
+
+	_, err = DB.Exec(`
+		CREATE TABLE IF NOT EXISTS sessions (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			room_id VARCHAR(36) NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMP NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create sessions table: %v", err)
 	}
 
 	log.Println("Tables created successfully")

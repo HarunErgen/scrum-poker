@@ -33,8 +33,8 @@ var upgrader = websocket.Upgrader{
 
 type Message struct {
 	Type    string      `json:"type"`
-	RoomID  string      `json:"room_id"`
-	UserID  string      `json:"user_id"`
+	RoomId  string      `json:"roomId"`
+	UserId  string      `json:"userId"`
 	Payload interface{} `json:"payload"`
 }
 
@@ -42,20 +42,20 @@ type Client struct {
 	hub                  *Hub
 	conn                 *websocket.Conn
 	send                 chan []byte
-	roomID               string
-	userID               string
+	roomId               string
+	userId               string
 	registrationComplete chan bool
 	lastPingTime         time.Time
 	mu                   sync.Mutex
 }
 
-func newClient(hub *Hub, conn *websocket.Conn, roomID, userID string) *Client {
+func newClient(hub *Hub, conn *websocket.Conn, roomId, userId string) *Client {
 	return &Client{
 		hub:                  hub,
 		conn:                 conn,
 		send:                 make(chan []byte, 256),
-		roomID:               roomID,
-		userID:               userID,
+		roomId:               roomId,
+		userId:               userId,
 		registrationComplete: make(chan bool, 1),
 		lastPingTime:         time.Now(),
 	}
@@ -93,8 +93,8 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		msg.RoomID = c.roomID
-		msg.UserID = c.userID
+		msg.RoomId = c.roomId
+		msg.UserId = c.userId
 
 		message, err = json.Marshal(msg)
 		if err != nil {
@@ -102,9 +102,9 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		log.Printf("Received message from client %s: %s", c.userID, string(message))
+		log.Printf("Received message from client %s: %s", c.userId, string(message))
 
-		c.hub.Broadcast(c.roomID, message)
+		c.hub.Broadcast(c.roomId, message)
 	}
 }
 
@@ -115,12 +115,12 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
-	log.Printf("Starting write pump for client %s", c.userID)
+	log.Printf("Starting write pump for client %s", c.userId)
 
 	for {
 		select {
 		case message, ok := <-c.send:
-			log.Printf("Writing message to client %s", c.userID)
+			log.Printf("Writing message to client %s", c.userId)
 
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -154,8 +154,8 @@ func (c *Client) writePump() {
 	}
 }
 
-func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomID, userID string) {
-	log.Printf("Connecting user ID: %s to room %s", userID, roomID)
+func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomId, userId string) {
+	log.Printf("Connecting user Id: %s to room %s", userId, roomId)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -163,12 +163,12 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomID, userID st
 		return
 	}
 
-	client := newClient(hub, conn, roomID, userID)
+	client := newClient(hub, conn, roomId, userId)
 
 	select {
 	case hub.register <- client:
 	case <-time.After(2 * time.Second):
-		log.Printf("Timeout sending registration request for client %s", userID)
+		log.Printf("Timeout sending registration request for client %s", userId)
 		conn.Close()
 		return
 	}
@@ -176,16 +176,16 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomID, userID st
 	select {
 	case success := <-client.registrationComplete:
 		if success {
-			log.Printf("User ID %s connected to room %s", userID, roomID)
+			log.Printf("User Id %s connected to room %s", userId, roomId)
 
 			go client.writePump()
 			go client.readPump()
 		} else {
-			log.Printf("Registration failed for user %s", userID)
+			log.Printf("Registration failed for user %s", userId)
 			conn.Close()
 		}
 	case <-time.After(10 * time.Second):
-		log.Printf("Registration confirmation timeout for user %s", userID)
+		log.Printf("Registration confirmation timeout for user %s", userId)
 		conn.Close()
 		return
 	}

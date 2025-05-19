@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './NamePromptDialog.css';
 
-const NamePromptDialog = ({ onSubmit, onCancel }) => {
-    const [userName, setUserName] = useState('');
+const NamePromptDialog = ({
+                              onSubmit,
+                              onCancel,
+                              initialValue = '',
+                              title = 'Join Room',
+                              buttonText = 'Join Room'
+                          }) => {
+    const [userName, setUserName] = useState(initialValue);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        setUserName(initialValue);
+    }, [initialValue]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
         if (!userName.trim()) {
-            setError('Enter your name');
+            setError('Please enter a name');
             return;
         }
 
@@ -19,13 +29,13 @@ const NamePromptDialog = ({ onSubmit, onCancel }) => {
     return (
         <div className="name-dialog-overlay">
             <div className="name-dialog card">
-                <h3>Join Room</h3>
+                <h3>{title}</h3>
 
                 {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="userName">Your Name</label>
+                        <label htmlFor="userName">Name</label>
                         <input
                             type="text"
                             id="userName"
@@ -42,7 +52,7 @@ const NamePromptDialog = ({ onSubmit, onCancel }) => {
                             Cancel
                         </button>
                         <button type="submit" className="btn btn-primary">
-                            Join Room
+                            {buttonText}
                         </button>
                     </div>
                 </form>

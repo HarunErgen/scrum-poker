@@ -9,24 +9,24 @@ import (
 
 func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	roomID := vars["roomID"]
+	roomId := vars["roomId"]
 
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+	userId := r.URL.Query().Get("userId")
+	if userId == "" {
+		http.Error(w, "User Id is required", http.StatusBadRequest)
 		return
 	}
 
-	room, err := db.GetRoom(roomID)
+	room, err := db.GetRoom(roomId)
 	if err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return
 	}
 
-	if _, ok := room.Participants[userID]; !ok {
+	if _, ok := room.Participants[userId]; !ok {
 		http.Error(w, "User not in room", http.StatusForbidden)
 		return
 	}
 
-	websocket.ServeWs(websocket.CommonHub, w, r, roomID, userID)
+	websocket.ServeWs(websocket.GlobalHub, w, r, roomId, userId)
 }

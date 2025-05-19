@@ -11,13 +11,13 @@ import (
 )
 
 type SubmitVoteRequest struct {
-	UserID string `json:"user_id"`
+	UserId string `json:"userId"`
 	Vote   string `json:"vote"`
 }
 
 func SubmitVoteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	roomID := vars["roomID"]
+	roomId := vars["roomId"]
 
 	var req SubmitVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -25,31 +25,31 @@ func SubmitVoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+	if req.UserId == "" {
+		http.Error(w, "User Id is required", http.StatusBadRequest)
 		return
 	}
 
-	room, err := db.GetRoom(roomID)
+	room, err := db.GetRoom(roomId)
 	if err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return
 	}
 
-	if _, ok := room.Participants[req.UserID]; !ok {
+	if _, ok := room.Participants[req.UserId]; !ok {
 		http.Error(w, "User not in room", http.StatusForbidden)
 		return
 	}
 
 	if req.Vote == "" {
-		room.RemoveVote(req.UserID)
+		room.RemoveVote(req.UserId)
 
-		if err := db.DeleteVote(roomID, req.UserID); err != nil {
+		if err := db.DeleteVote(roomId, req.UserId); err != nil {
 			http.Error(w, "Failed to delete vote", http.StatusInternalServerError)
 			return
 		}
 
-		websocket.CommonHub.BroadcastRoomUpdate(roomID, room)
+		websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
 		utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
 		return
 	}
@@ -59,13 +59,13 @@ func SubmitVoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	room.AddVote(req.UserID, req.Vote)
+	room.AddVote(req.UserId, req.Vote)
 
-	if err := db.AddVote(roomID, req.UserID, req.Vote); err != nil {
+	if err := db.AddVote(roomId, req.UserId, req.Vote); err != nil {
 		http.Error(w, "Failed to submit vote", http.StatusInternalServerError)
 		return
 	}
 
-	websocket.CommonHub.BroadcastRoomUpdate(roomID, room)
+	websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
 	utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
 }

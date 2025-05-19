@@ -1,11 +1,11 @@
 class Room {
-  constructor(data) {
-    this.id = data.id || '';
-    this.name = data.name || '';
-    this.scrumMaster = data.scrum_master || '';
-    this.participants = data.participants || {};
-    this.votes = data.votes || {};
-    this.votesRevealed = data.votes_revealed || false;
+  constructor(id, name, scrumMaster, participants, votes, votesRevealed) {
+    this.id = id || '';
+    this.name = name || '';
+    this.scrumMaster = scrumMaster || '';
+    this.participants = participants || {};
+    this.votes = votes || {};
+    this.votesRevealed = votesRevealed || false;
   }
 
   isScrumMaster(userId) {
@@ -25,7 +25,7 @@ class Room {
   }
 
   static fromApiResponse(data) {
-    return new Room(data);
+    return new Room(data.id, data.name, data.scrumMaster, data.participants, data.votes, data.votesRevealed);
   }
 }
 

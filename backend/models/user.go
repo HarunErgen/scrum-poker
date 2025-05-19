@@ -5,23 +5,26 @@ import (
 )
 
 type User struct {
-	ID        string    `json:"id"`
+	Id        string    `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	IsOnline  bool      `json:"isOnline"`
 }
 
 func NewUser(id, name string) *User {
 	return &User{
-		ID:        id,
+		Id:        id,
 		Name:      name,
 		CreatedAt: time.Now(),
+		IsOnline:  true,
 	}
 }
 
 func (u *User) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"id":         u.ID,
-		"name":       u.Name,
-		"created_at": u.CreatedAt,
+		"id":        u.Id,
+		"name":      u.Name,
+		"createdAt": u.CreatedAt,
+		"isOnline":  u.IsOnline,
 	}
 }

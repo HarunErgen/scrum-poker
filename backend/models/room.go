@@ -6,19 +6,19 @@ import (
 )
 
 type Room struct {
-	ID            string            `json:"id"`
+	Id            string            `json:"id"`
 	Name          string            `json:"name"`
-	CreatedAt     time.Time         `json:"created_at"`
-	ScrumMaster   string            `json:"scrum_master"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	ScrumMaster   string            `json:"scrumMaster"`
 	Participants  map[string]*User  `json:"participants"`
 	Votes         map[string]string `json:"votes"`
-	VotesRevealed bool              `json:"votes_revealed"`
+	VotesRevealed bool              `json:"votesRevealed"`
 	Mu            sync.Mutex        `json:"-"`
 }
 
 func NewRoom(id, name, scrumMasterID string) *Room {
 	return &Room{
-		ID:            id,
+		Id:            id,
 		Name:          name,
 		CreatedAt:     time.Now(),
 		ScrumMaster:   scrumMasterID,
@@ -31,20 +31,20 @@ func NewRoom(id, name, scrumMasterID string) *Room {
 func (r *Room) AddParticipant(user *User) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
-	r.Participants[user.ID] = user
+	r.Participants[user.Id] = user
 }
 
-func (r *Room) RemoveParticipant(userID string) {
+func (r *Room) RemoveParticipant(userId string) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
-	delete(r.Participants, userID)
-	delete(r.Votes, userID)
+	delete(r.Participants, userId)
+	delete(r.Votes, userId)
 }
 
-func (r *Room) AddVote(userID, vote string) {
+func (r *Room) AddVote(userId, vote string) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
-	r.Votes[userID] = vote
+	r.Votes[userId] = vote
 }
 
 func (r *Room) RevealVotes() {
@@ -68,8 +68,8 @@ func (r *Room) TransferScrumMaster(newScrumMasterID string) {
 
 func (r *Room) AssignRandomScrumMaster(participants map[string]*User) {
 	var candidates []string
-	for userID := range participants {
-		candidates = append(candidates, userID)
+	for userId := range participants {
+		candidates = append(candidates, userId)
 	}
 
 	if len(candidates) == 0 {
@@ -100,18 +100,18 @@ func (r *Room) ToJSON() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"id":             r.ID,
-		"name":           r.Name,
-		"created_at":     r.CreatedAt,
-		"scrum_master":   r.ScrumMaster,
-		"participants":   participants,
-		"votes":          votes,
-		"votes_revealed": r.VotesRevealed,
+		"id":            r.Id,
+		"name":          r.Name,
+		"createdAt":     r.CreatedAt,
+		"scrumMaster":   r.ScrumMaster,
+		"participants":  participants,
+		"votes":         votes,
+		"votesRevealed": r.VotesRevealed,
 	}
 }
 
-func (r *Room) RemoveVote(userID string) {
+func (r *Room) RemoveVote(userId string) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
-	delete(r.Votes, userID)
+	delete(r.Votes, userId)
 }

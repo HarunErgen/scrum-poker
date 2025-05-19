@@ -11,67 +11,67 @@ import (
 )
 
 type LeaveRoomRequest struct {
-	UserID string `json:"user_id"`
+	UserId string `json:"userId"`
 }
 
 func LeaveRoomHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	roomID := vars["roomID"]
+	roomId := vars["roomId"]
 
 	var req LeaveRoomRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserId == "" {
+		http.Error(w, "User Id is required", http.StatusBadRequest)
 		return
 	}
-	userID := req.UserID
+	userId := req.UserId
 
-	room, err := db.GetRoom(roomID)
+	room, err := db.GetRoom(roomId)
 	if err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return
 	}
 
-	if _, ok := room.Participants[userID]; !ok {
+	if _, ok := room.Participants[userId]; !ok {
 		http.Error(w, "User not in room", http.StatusForbidden)
 		return
 	}
 
-	if room.ScrumMaster == userID {
+	if room.ScrumMaster == userId {
 		participantsCopy := make(map[string]*models.User)
 		for id, user := range room.Participants {
 			participantsCopy[id] = user
 		}
-		delete(participantsCopy, userID)
+		delete(participantsCopy, userId)
 
 		if len(participantsCopy) > 0 {
 			room.AssignRandomScrumMaster(participantsCopy)
 
-			if err := db.UpdateScrumMaster(roomID, room.ScrumMaster); err != nil {
+			if err := db.UpdateScrumMaster(roomId, room.ScrumMaster); err != nil {
 				http.Error(w, "Failed to update Scrum Master", http.StatusInternalServerError)
 				return
 			}
 		}
 	}
 
-	room.RemoveParticipant(userID)
+	room.RemoveParticipant(userId)
 
-	if err := db.RemoveParticipantFromRoom(roomID, userID); err != nil {
+	if err := db.RemoveParticipantFromRoom(roomId, userId); err != nil {
 		http.Error(w, "Failed to leave room", http.StatusInternalServerError)
 		return
 	}
 
-	if err := db.DeleteUser(userID); err != nil {
+	if err := db.DeleteUser(userId); err != nil {
 		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
 
 	if len(room.Participants) == 0 {
-		if err := db.DeleteRoom(roomID); err != nil {
+		if err := db.DeleteRoom(roomId); err != nil {
 			http.Error(w, "Failed to delete room", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	websocket.CommonHub.BroadcastRoomUpdate(roomID, room)
+	websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
 	utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
 }

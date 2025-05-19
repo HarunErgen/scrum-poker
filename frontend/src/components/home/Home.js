@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 
-import SessionStorage from '../../utils/SessionStorage';
 import api from "../../utils/AxiosInstance";
 
 const Home = () => {
@@ -13,15 +12,6 @@ const Home = () => {
   const [userName, setUserName] = useState('');
   const [roomId, setRoomId] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    const session = SessionStorage.getSession();
-
-    if (SessionStorage.hasSession()) {
-      setUserName(session.userName || '');
-      setRoomId(session.roomId || '');
-    }
-  });
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -35,15 +25,19 @@ const Home = () => {
     try {
       const response = await api.post('/api/rooms', {
         name: roomName,
-        user_name: userName
+        userName: userName
       });
 
-      const userId = response.data.participants[response.data.scrum_master].id;
+      const userId = response.data.participants[response.data.scrumMaster].id;
       const newRoomId = response.data.id;
 
-      SessionStorage.saveSession(userId, userName, newRoomId);
+      try {
+        await api.post(`/api/sessions/${userId}/${newRoomId}`);
+      } catch (sessionErr) {
+        console.error('Error creating session:', sessionErr);
+      }
 
-      navigate(`/room/${newRoomId}`);
+      navigate(`/room/${newRoomId}`, { state: { userId: userId, userName: userName } });
     } catch (err) {
       console.error('Error creating room:', err);
       setError('Failed to create room. Please try again.');
@@ -55,23 +49,27 @@ const Home = () => {
     setError('');
 
     if (!roomId || !userName) {
-      setError('Room ID and your name are required');
+      setError('Room Id and your name are required');
       return;
     }
 
     try {
       const response = await api.post(`/api/rooms/${roomId}/join`, {
-        user_name: userName
+        userName: userName
       });
 
       const userId = response.data.user.id;
 
-      SessionStorage.saveSession(userId, userName, roomId);
+      try {
+        await api.post(`/api/sessions/${userId}/${roomId}`);
+      } catch (sessionErr) {
+        console.error('Error creating session:', sessionErr);
+      }
 
-      navigate(`/room/${roomId}`);
+      navigate(`/room/${roomId}`, { state: { userId: userId, userName: userName } });
     } catch (err) {
       console.error('Error joining room:', err);
-      setError('Failed to join room. Please check the Room ID and try again.');
+      setError('Failed to join room. Please check the Room Id and try again.');
     }
   };
 
@@ -132,14 +130,14 @@ const Home = () => {
         {isJoining && (
           <form onSubmit={handleJoinRoom} className="mt-3">
             <div className="form-group">
-              <label htmlFor="roomId">Room ID</label>
+              <label htmlFor="roomId">Room Id</label>
               <input
                 type="text"
                 id="roomId"
                 className="form-control"
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value)}
-                placeholder="Enter the Room ID"
+                placeholder="Enter the Room Id"
               />
             </div>
             <div className="form-group">
