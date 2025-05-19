@@ -17,7 +17,7 @@ The project is organized into two main components:
 - Real-time voting using Fibonacci sequence
 - Vote revelation controlled by the Scrum Master
 - Responsive design for desktop and mobile devices
-- Session management for short-time disconnnections.
+- Session management for short-time disconnections.
 
 ## Getting Started
 
@@ -75,7 +75,7 @@ npm run build
 #### Prerequisites
 
 - Go 1.23.0
-- PostgreSQL (or use the Docker Compose setup)
+- PostgreSQL 14 (or use the Docker Compose setup)
 
 #### Installation
 
@@ -104,6 +104,29 @@ go run main.go
 - `ALLOWED_ORIGINS` - Allowed CORS origins.
 
 ## API Documentation
+
+### User Management
+#### Update User
+
+- **URL**: `/api/users`
+- **Method**: `PUT`
+- **Request Body**:
+  ```json
+  {
+    "id": "user-id",
+    "name": "John Doe",
+    "isOnline": true
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "id": "user-id",
+    "name": "John Doe",
+    "isOnline": true,
+    "createdAt": "2023-01-01T12:00:00Z"
+  }
+  ```
 
 ### Room Management
 
@@ -160,22 +183,24 @@ go run main.go
     "room": {
       "id": "room-id",
       "name": "Sprint Planning",
-      "created_at": "2023-01-01T12:00:00Z",
-      "scrum_master": "user-id",
+      "createdAt": "2023-01-01T12:00:00Z",
+      "scrumMaster": "user-id",
       "participants": {
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
-      "votes_revealed": false
+      "votesRevealed": false
     },
     "user": {
       "id": "user-id",
       "name": "Jane Smith",
-      "created_at": "2023-01-01T12:05:00Z"
+      "isOnline": true,
+      "createdAt": "2023-01-01T12:05:00Z"
     }
   }
   ```
@@ -189,7 +214,7 @@ go run main.go
 - **Request Body**:
   ```json
   {
-    "user_id": "user-id",
+    "userId": "user-id",
     "vote": "5"
   }
   ```
@@ -200,17 +225,18 @@ go run main.go
     "room": {
       "id": "room-id",
       "name": "Sprint Planning",
-      "created_at": "2023-01-01T12:00:00Z",
-      "scrum_master": "user-id",
+      "createdAt": "2023-01-01T12:00:00Z",
+      "scrumMaster": "user-id",
       "participants": {
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
-      "votes_revealed": false
+      "votesRevealed": false
     }
   }
   ```
@@ -222,7 +248,7 @@ go run main.go
 - **Request Body**:
   ```json
   {
-    "user_id": "scrum-master-id"
+    "userId": "scrum-master-id"
   }
   ```
 - **Response**:
@@ -232,19 +258,20 @@ go run main.go
     "room": {
       "id": "room-id",
       "name": "Sprint Planning",
-      "created_at": "2023-01-01T12:00:00Z",
-      "scrum_master": "user-id",
+      "createdAt": "2023-01-01T12:00:00Z",
+      "scrumMaster": "user-id",
       "participants": {
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {
         "user-id": "5"
       },
-      "votes_revealed": true
+      "votesRevealed": true
     }
   }
   ```
@@ -256,7 +283,7 @@ go run main.go
 - **Request Body**:
   ```json
   {
-    "user_id": "scrum-master-id"
+    "userId": "scrum-master-id"
   }
   ```
 - **Response**:
@@ -266,17 +293,18 @@ go run main.go
     "room": {
       "id": "room-id",
       "name": "Sprint Planning",
-      "created_at": "2023-01-01T12:00:00Z",
-      "scrum_master": "user-id",
+      "createdAt": "2023-01-01T12:00:00Z",
+      "scrumMaster": "user-id",
       "participants": {
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:00:00Z"
         }
       },
       "votes": {},
-      "votes_revealed": false
+      "votesRevealed": false
     }
   }
   ```
@@ -288,8 +316,8 @@ go run main.go
 - **Request Body**:
   ```json
   {
-    "user_id": "current-scrum-master-id",
-    "new_scrum_master_id": "new-scrum-master-id"
+    "userId": "current-scrum-master-id",
+    "newScrumMasterId": "new-scrum-master-id"
   }
   ```
 - **Response**:
@@ -299,54 +327,159 @@ go run main.go
     "room": {
       "id": "room-id",
       "name": "Sprint Planning",
-      "created_at": "2023-01-01T12:00:00Z",
-      "scrum_master": "new-scrum-master-id",
+      "createdAt": "2023-01-01T12:00:00Z",
+      "scrumMaster": "new-scrum-master-id",
       "participants": {
         "user-id": {
           "id": "user-id",
           "name": "John Doe",
-          "created_at": "2023-01-01T12:00:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:00:00Z"
         },
         "new-scrum-master-id": {
           "id": "new-scrum-master-id",
           "name": "Jane Smith",
-          "created_at": "2023-01-01T12:05:00Z"
+          "isOnline": true,
+          "createdAt": "2023-01-01T12:05:00Z"
         }
       },
       "votes": {},
-      "votes_revealed": false
+      "votesRevealed": false
     }
   }
   ```
 
 ### WebSocket
 
-- **URL**: `/ws/{roomId}?user_id={userId}`
+- **URL**: `/ws/{roomId}?userId={userId}`
 - **Protocol**: WebSocket
 - **Messages**:
   - Room updates are sent as JSON with the following format:
     ```json
     {
       "type": "room_update",
-      "room_id": "room-id",
-      "user_id": "user-id",
+      "roomId": "room-id",
+      "userId": "user-id",
       "payload": {
         "id": "room-id",
         "name": "Sprint Planning",
-        "created_at": "2023-01-01T12:00:00Z",
-        "scrum_master": "user-id",
+        "createdAt": "2023-01-01T12:00:00Z",
+        "scrumMaster": "user-id",
         "participants": {
           "user-id": {
             "id": "user-id",
             "name": "John Doe",
-            "created_at": "2023-01-01T12:00:00Z"
+            "isOnline": true,
+            "createdAt": "2023-01-01T12:00:00Z"
           }
         },
         "votes": {},
-        "votes_revealed": false
+        "votesRevealed": false
       }
     }
     ```
+
+### Session Management
+
+#### Create Session
+
+- **URL**: `/api/sessions/{userId}/{roomId}`
+- **Method**: `POST`
+- **Request Body**: `None`
+
+- **Response**:
+  - Status: `201 Created`
+  - Set-Cookie: `sessionId=<session-id>; HttpOnly; Secure; SameSite=Lax`
+  - Body:
+      ```json
+    {
+        "sessionId": "session-id"
+    }
+    ```
+
+- **Error Responses**:
+  - `400 Bad Request`: If userId or roomId is missing.
+  - `403 Forbidden`: If the user is not a participant in the room.
+  - `404 Not Found`: If the user or room does not exist.
+  - `500 Internal Server Error`: If session creation or user status update fails.
+
+---
+
+#### Get Session
+- **URL**: `/api/sessions`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `roomId` (string) – The ID of the room to validate against the session.
+
+- **Request Headers**:
+  - `Cookie`: sessionId=<session-id>
+
+- **Response**:
+  - Status: 200 OK
+  - Body:
+  ```json
+    {
+      "session": {
+        "id": "session-id",
+        "userId": "user-id",
+        "roomId": "room-id",
+        "createdAt": "2023-01-01T12:00:00Z",
+        "expiresAt": "2023-01-01T13:00:00Z"
+      },
+      "user": {
+        "id": "user-id",
+        "name": "John Doe",
+        "isOnline": true,
+        "createdAt": "2023-01-01T12:00:00Z"
+      },
+      "room": {
+        "id": "room-id",
+        "name": "Sprint Planning",
+        "createdAt": "2023-01-01T12:00:00Z",
+        "scrumMaster": "user-id",
+        "participants": {
+          "user-id": {
+            "id": "user-id",
+            "name": "John Doe",
+            "isOnline": true,
+            "createdAt": "2023-01-01T12:00:00Z"
+          }
+        },
+        "votes": {},
+        "votesRevealed": false
+      }
+    }
+  ```
+
+- **Error Responses**:
+  - `400 Bad Request`: If the session ID is missing.
+  - `401 Unauthorized`: If the session has expired.
+  - `403 Forbidden`: If the room ID in query does not match the session.
+  - `404 Not Found`: If the session, user, or room is not found.
+  - `500 Internal Server Error`: If session refresh or user update fails.
+
+---
+
+#### Delete Session
+
+- **URL**: `/api/sessions`
+- **Method**: `DELETE`
+- **Request Headers**:
+  - Cookie: sessionId=<session-id>
+- **Response**:
+  - Status: `200 OK`
+  - Set-Cookie: `sessionId=; Max-Age=-1; HttpOnly; Secure; SameSite=Lax`
+  - Body:
+    ```json
+    {
+      "message": "Session deleted"
+    }
+    ```
+
+- Error Responses:
+  - `400 Bad Request`: If session ID is missing.
+  - `404 Not Found`: If the session cookie is not present.
+  - `500 Internal Server Error`: If session deletion fails.
 
 ## Technical Details
 
