@@ -74,8 +74,6 @@ func (m *Manager) StartCleanupProcess() {
 }
 
 func (m *Manager) cleanupExpiredSessions() {
-	log.Println("Running session cleanup process")
-
 	rooms, err := db.GetAllRooms()
 	if err != nil {
 		log.Printf("Error getting rooms: %v", err)
