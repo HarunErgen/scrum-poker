@@ -29,6 +29,10 @@ class VoteOption {
   static getAllValues() {
     return this.getAllOptions().map(option => option.value);
   }
+
+  static getAllNumericValues() {
+    return this.getAllOptions().filter(option => option.value !== '?').map(option => option.value);
+  }
 }
 
 export default VoteOption;

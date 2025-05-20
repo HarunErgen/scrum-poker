@@ -102,8 +102,6 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		log.Printf("Received message from client %s: %s", c.userId, string(message))
-
 		c.hub.Broadcast(c.roomId, message)
 	}
 }
@@ -115,13 +113,9 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
-	log.Printf("Starting write pump for client %s", c.userId)
-
 	for {
 		select {
 		case message, ok := <-c.send:
-			log.Printf("Writing message to client %s", c.userId)
-
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -155,8 +149,6 @@ func (c *Client) writePump() {
 }
 
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomId, userId string) {
-	log.Printf("Connecting user Id: %s to room %s", userId, roomId)
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -176,8 +168,6 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomId, userId st
 	select {
 	case success := <-client.registrationComplete:
 		if success {
-			log.Printf("User Id %s connected to room %s", userId, roomId)
-
 			go client.writePump()
 			go client.readPump()
 		} else {

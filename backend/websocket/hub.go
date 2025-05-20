@@ -79,8 +79,6 @@ func (h *Hub) handleRegistration(c *Client) {
 		}
 	}()
 
-	log.Printf("Hub received register request for client %s", c.userId)
-
 	roomData := h.getOrCreateRoom(c.roomId)
 
 	lockAcquired := make(chan bool, 1)
@@ -93,12 +91,8 @@ func (h *Hub) handleRegistration(c *Client) {
 	case <-lockAcquired:
 		defer roomData.mu.Unlock()
 
-		log.Printf("Processing registration for client %s", c.userId)
-
 		for existingClient := range roomData.clients {
 			if existingClient.userId == c.userId {
-				log.Printf("Found existing client with userId %s, replacing", c.userId)
-
 				delete(roomData.clients, existingClient)
 				close(existingClient.send)
 
@@ -109,8 +103,6 @@ func (h *Hub) handleRegistration(c *Client) {
 		}
 
 		roomData.clients[c] = true
-		log.Printf("Client registered in room %s. Total clients: %d",
-			c.roomId, len(roomData.clients))
 
 		select {
 		case c.registrationComplete <- true:
@@ -133,8 +125,6 @@ func (h *Hub) handleUnregistration(c *Client) {
 		}
 	}()
 
-	log.Printf("Hub received unregister request for client %s", c.userId)
-
 	h.roomsMu.RLock()
 	roomData, roomExists := h.rooms[c.roomId]
 	h.roomsMu.RUnlock()
@@ -154,8 +144,6 @@ func (h *Hub) handleUnregistration(c *Client) {
 	case <-lockAcquired:
 		defer roomData.mu.Unlock()
 
-		log.Printf("Processing unregistration for client %s", c.userId)
-
 		if _, ok := roomData.clients[c]; ok {
 			delete(roomData.clients, c)
 
@@ -173,19 +161,12 @@ func (h *Hub) handleUnregistration(c *Client) {
 				h.roomsMu.Lock()
 				delete(h.rooms, c.roomId)
 				h.roomsMu.Unlock()
-				log.Printf("Room %s deleted (no clients)", c.roomId)
-			} else {
-				log.Printf("Client unregistered from room %s. Total clients: %d",
-					c.roomId, len(roomData.clients))
 			}
 
 			roomData.mu.Lock()
 
 			go h.handleDisconnection(c)
 		}
-
-		log.Printf("Unregistration complete for client %s", c.userId)
-
 	case <-time.After(5 * time.Second):
 		log.Printf("Timeout waiting for lock in unregistration for client %s", c.userId)
 		if c.conn != nil {

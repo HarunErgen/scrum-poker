@@ -4,7 +4,7 @@ import './Room.css';
 
 import VotingCard from './voting-card/VotingCard';
 import NamePromptDialog from './name-prompt-dialog/NamePromptDialog';
-import ResultsDialog from './results-dialog/ResultsDialog';
+import VotingResults from './results-dialog/VotingResults';
 import QRCodeDialog from './qr-code-dialog/QRCodeDialog';
 
 import Room from '../../models/Room';
@@ -24,7 +24,6 @@ const RoomComponent = () => {
   const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const [showNamePrompt, setShowNamePrompt] = useState(false);
-  const [showResultsDialog, setShowResultsDialog] = useState(false);
   const [showQRCodeDialog, setShowQRCodeDialog] = useState(false);
 
   const location = useLocation();
@@ -69,14 +68,6 @@ const RoomComponent = () => {
 
     checkSession();
   }, [userId]);
-
-  useEffect(() => {
-    if (roomData && roomData.votesRevealed) {
-      setShowResultsDialog(true);
-    } else {
-      setShowResultsDialog(false);
-    }
-  }, [roomData]);
 
   useEffect(() => {
     return () => {
@@ -193,7 +184,6 @@ const RoomComponent = () => {
         userId: userId
       });
       setSelectedVote('');
-      setShowResultsDialog(false);
     } catch (err) {
       setError('Failed to reset votes. Please try again.');
     }
@@ -217,7 +207,6 @@ const RoomComponent = () => {
 
   const handleRenameSubmit = async (newName) => {
     try {
-      console.log('Renaming user:', participantToRename, newName);
       const user = new User(participantToRename, newName, true);
       await api.put(`/api/users`, user);
 
@@ -257,6 +246,34 @@ const RoomComponent = () => {
     setShowQRCodeDialog(false);
   };
 
+  const getVoteBackgroundColor = (participantId) => {
+    if (roomData.votesRevealed && roomData.hasVoted(participantId)) {
+      const voteValue = roomData.getUserVote(participantId);
+      const voteOption = VoteOption.getByValue(voteValue);
+      if (voteOption) {
+        return `${voteOption.getColor()}40`;
+      }
+    }
+    return 'transparent';
+  };
+
+  const organizeParticipants = () => {
+    if (!roomData) return [];
+
+    const participants = roomData.getParticipantsArray();
+    const scrumMasterIndex = participants.findIndex(p => p.id === roomData.scrumMaster);
+
+    if (scrumMasterIndex !== -1) {
+      const scrumMaster = participants[scrumMasterIndex];
+      participants.splice(scrumMasterIndex, 1);
+      participants.unshift(scrumMaster);
+    }
+
+    return participants;
+  };
+
+
+
   if (error) {
     return <div className="error">{error}</div>;
   }
@@ -273,17 +290,10 @@ const RoomComponent = () => {
     return <div className="error">Room not found</div>;
   }
 
+  const organizedParticipants = organizeParticipants();
+
   return (
       <div className="room-container">
-        {showResultsDialog && (
-            <ResultsDialog
-                votes={roomData.votes}
-                voteOptions={voteOptions}
-                isScrumMaster={isScrumMaster}
-                onReset={handleResetVotes}
-            />
-        )}
-
         {showQRCodeDialog && (
             <QRCodeDialog
                 url={getRoomLink()}
@@ -314,25 +324,21 @@ const RoomComponent = () => {
             >
               Leave Room
             </button>
-            {isScrumMaster && (
-                <button
-                    className="btn btn-primary"
-                    onClick={handleRevealVotes}
-                    disabled={roomData.votesRevealed}
-                    style={{ marginLeft: '0.5rem' }}
-                >
-                  Reveal Votes
-                </button>
-            )}
           </div>
         </div>
 
         <div className="participants-section card">
           <h3>Participants</h3>
-          <div className="participants-list">
-            {roomData.getParticipantsArray().map((participant) => {
+          <div className="participants-grid">
+            {organizedParticipants.map((participant) => {
               const isCurrentUser = participant.id === userId;
               const showMenu = isScrumMaster || isCurrentUser;
+              const participantVote = roomData.votesRevealed && roomData.hasVoted(participant.id)
+                  ? roomData.getUserVote(participant.id)
+                  : null;
+              const voteColor = participantVote ?
+                  VoteOption.getByValue(participantVote)?.getColor() :
+                  null;
 
               const menuOptions = [];
 
@@ -356,24 +362,32 @@ const RoomComponent = () => {
                       className={`participant ${
                           roomData.hasVoted(participant.id) && !roomData.votesRevealed ? 'voted' : ''
                       }`}
+                      style={{
+                        backgroundColor: getVoteBackgroundColor(participant.id)
+                      }}
                   >
-                    <span
-                        className={`participant-name ${
-                            !participant.isOnline ? 'offline-indicator' : ''
-                        }`}
-                    >
-                      {participant.name}{' '}
-                      {participant.id === roomData.scrumMaster && '(Scrum Master)'}
-                      {!participant.isOnline && (
-                          <span className="offline-indicator"> (Offline)</span>
-                      )}
-                    </span>
+                    <div className="participant-info">
+                      <span
+                          className={`participant-name ${
+                              !participant.isOnline ? 'offline-indicator' : ''
+                          }`}
+                      >
+                        {participant.name}{' '}
+                        {participant.id === roomData.scrumMaster && '(Scrum Master)'}
+                        {!participant.isOnline && (
+                            <span className="offline-indicator"> (Offline)</span>
+                        )}
+                      </span>
 
-                    {roomData.hasVoted(participant.id) && roomData.votesRevealed && (
-                        <span className="vote-status">
-                          Voted: {roomData.getUserVote(participant.id)}
-                        </span>
-                    )}
+                      {roomData.votesRevealed && participantVote && (
+                          <div
+                              className="vote-badge"
+                              style={{ color: voteColor }}
+                          >
+                            {participantVote}
+                          </div>
+                      )}
+                    </div>
 
                     {showMenu && (
                         <div className="menu-container">
@@ -399,18 +413,41 @@ const RoomComponent = () => {
         </div>
 
         <div className="voting-section card">
-          <h3>Your Vote</h3>
-          <div className="voting-cards">
-            {voteOptions.map((vote) => (
-                <VotingCard
-                    key={vote}
-                    value={vote}
-                    selected={selectedVote === vote}
-                    disabled={roomData.votesRevealed}
-                    onClick={() => handleVote(vote)}
-                />
-            ))}
+          <div className="voting-header">
+            <h3>Voting</h3>
+            {isScrumMaster && (
+                <div className="room-actions">
+                  {!roomData.votesRevealed ? (
+                      <button className="btn btn-primary" onClick={handleRevealVotes}>
+                        Reveal Votes
+                      </button>
+                  ) : (
+                      <button className="btn btn-warning" onClick={handleResetVotes}>
+                        Reset Votes
+                      </button>
+                  )}
+                </div>
+            )}
           </div>
+
+          {roomData.votesRevealed ? (
+              <VotingResults
+                  votes={roomData.votes}
+                  voteOptions={voteOptions}
+              />
+          ) : (
+              <div className="voting-cards">
+                {voteOptions.map((vote) => (
+                    <VotingCard
+                        key={vote}
+                        value={vote}
+                        selected={selectedVote === vote}
+                        disabled={false}
+                        onClick={() => handleVote(vote)}
+                    />
+                ))}
+              </div>
+          )}
         </div>
 
         {showRenameDialog && (

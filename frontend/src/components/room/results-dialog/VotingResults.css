@@ -1,27 +1,14 @@
-.results-dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
 
-.results-dialog {
+.voting-results {
     width: 100%;
-    max-width: 500px;
-    padding: 2rem;
+    padding: 1rem 0;
 }
 
-.results-dialog h3 {
-    text-align: center;
+.voting-results h3 {
+    margin-top: 0;
 }
 
-.results-dialog .vote-summary {
+.voting-results .vote-summary {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -29,7 +16,7 @@
     justify-content: center;
 }
 
-.results-dialog .vote-count {
+.voting-results .vote-count {
     background-color: #f8f9fa;
     padding: 0.75rem 1.5rem;
     border-radius: 0.25rem;
@@ -37,31 +24,37 @@
     flex-direction: column;
     align-items: center;
     min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
 }
 
-.results-dialog .vote {
+.voting-results .vote-count:hover {
+    transform: translateY(-2px);
+}
+
+.voting-results .vote {
     font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 0.5rem;
 }
 
-.results-dialog .count {
+.voting-results .count {
     font-size: 1.25rem;
 }
 
-.dialog-actions {
+.results-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 1rem;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
 }
 
-.results-dialog .average-wrapper {
+.voting-results .average-wrapper {
     display: flex;
     justify-content: center;
     align-items: baseline;
     gap: 0.25rem;
-    margin-top: 0.5rem;
+    margin-bottom: 1rem;
     font-size: 1.25rem;
 }
 

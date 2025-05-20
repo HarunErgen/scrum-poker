@@ -40,16 +40,15 @@
 }
 
 .menu-button {
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
 }
 
 .menu-button:hover {
@@ -57,9 +56,8 @@
 }
 
 .menu-dots {
-  font-size: 18px;
-  font-weight: bold;
-  line-height: 1;
+  font-size: 1.5em;
+  line-height: 0;
 }
 
 .menu-dropdown {
@@ -92,23 +90,46 @@
   margin-top: 1.5rem;
 }
 
+.participants-section h3 {
+  margin-top: 0;
+}
+
 .participants-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+.participants-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
 .participant {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
-  background-color: #f9f9f9;
-  border-radius: var(--border-radius);
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: transparent;
+  border: 1px solid #ddd;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+.participant.voted {
+  border-left: 4px solid #27ae60;
 }
 
 .participant-name {
   font-weight: bold;
+}
+
+.participant-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
 .vote-status {
@@ -118,9 +139,24 @@
   color: var(--secondary-color);
 }
 
-.participant.voted {
-  background-color: #e7f1ff;
-  border-left: 4px solid var(--secondary-color);
+.vote-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  margin-left: 10px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.participant-vote {
+  font-weight: bold;
+  margin-left: auto;
+  margin-right: 10px;
 }
 
 .offline-indicator {
@@ -130,7 +166,19 @@
 }
 
 .voting-section {
-  margin-top: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.voting-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.voting-header h3 {
+  margin-top: 0;
 }
 
 .voting-cards {

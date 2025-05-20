@@ -92,7 +92,6 @@ func (m *Manager) cleanupExpiredSessions() {
 				userId := session.UserId
 
 				if user, exists := room.Participants[userId]; exists && user.IsOnline {
-					log.Printf("User %s is online, refreshing session %s", userId, session.Id)
 					session.Refresh(SessionTTL)
 					if err := db.UpdateSession(session); err != nil {
 						log.Printf("Error refreshing session: %v", err)
