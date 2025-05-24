@@ -50,13 +50,8 @@ docker-compose up -d
 #### Installation
 
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start development server
 npm start
 ```
 
@@ -80,13 +75,8 @@ npm run build
 #### Installation
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Download dependencies
 go mod download
-
-# Run the application
 go run main.go
 ```
 
