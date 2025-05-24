@@ -16,8 +16,8 @@ func Init() {
 	GlobalHub = newHub()
 	go GlobalHub.run()
 
-	session.InitSessionManager(func(roomId string, room *models.Room) {
-		GlobalHub.BroadcastRoomUpdate(roomId, room)
+	session.InitSessionManager(func(roomId string, msg *models.Message) {
+		GlobalHub.Broadcast(roomId, msg)
 	})
 }
 
@@ -194,7 +194,7 @@ func (h *Hub) handleDisconnection(client *Client) {
 
 			existingSession, err := db.GetSessionByUserID(userId)
 			if err == nil && existingSession != nil {
-				existingSession.Refresh(session.SessionTTL)
+				existingSession.Refresh(session.TTL)
 				if err := db.UpdateSession(existingSession); err != nil {
 					log.Printf("Error updating session: %v", err)
 				}
@@ -205,15 +205,24 @@ func (h *Hub) handleDisconnection(client *Client) {
 				}
 			}
 
-			updatedRoom, err := db.GetRoom(roomId)
-			if err == nil {
-				go h.BroadcastRoomUpdate(roomId, updatedRoom)
+			message := &models.Message{
+				Action: models.ActionTypeOffline,
+				Payload: map[string]interface{}{
+					"userId": userId,
+				},
 			}
+			h.Broadcast(roomId, message)
 		}
 	}()
 }
 
-func (h *Hub) Broadcast(roomId string, message []byte) {
+func (h *Hub) Broadcast(roomId string, msg *models.Message) {
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("error marshaling message: %v", err)
+		return
+	}
+
 	h.roomsMu.RLock()
 	roomData, roomExists := h.rooms[roomId]
 	h.roomsMu.RUnlock()
@@ -227,7 +236,7 @@ func (h *Hub) Broadcast(roomId string, message []byte) {
 
 	for client := range roomData.clients {
 		select {
-		case client.send <- message:
+		case client.send <- msgBytes:
 		default:
 			select {
 			case h.unregister <- client:
@@ -237,20 +246,4 @@ func (h *Hub) Broadcast(roomId string, message []byte) {
 			delete(roomData.clients, client)
 		}
 	}
-}
-
-func (h *Hub) BroadcastRoomUpdate(roomId string, room *models.Room) {
-	msg := Message{
-		Type:    "room_update",
-		RoomId:  roomId,
-		Payload: room.ToJSON(),
-	}
-
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("Error marshaling room update message: %v", err)
-		return
-	}
-
-	h.Broadcast(roomId, msgBytes)
 }

@@ -3,6 +3,8 @@ package websocket
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/scrum-poker/backend/logic/message_logic"
+	"github.com/scrum-poker/backend/models"
 	"log"
 	"net/http"
 	"sync"
@@ -29,13 +31,6 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-}
-
-type Message struct {
-	Type    string      `json:"type"`
-	RoomId  string      `json:"roomId"`
-	UserId  string      `json:"userId"`
-	Payload interface{} `json:"payload"`
 }
 
 type Client struct {
@@ -87,22 +82,13 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
-		var msg Message
+		var msg models.Message
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("error unmarshaling message: %v", err)
 			continue
 		}
 
-		msg.RoomId = c.roomId
-		msg.UserId = c.userId
-
-		message, err = json.Marshal(msg)
-		if err != nil {
-			log.Printf("error marshaling message: %v", err)
-			continue
-		}
-
-		c.hub.Broadcast(c.roomId, message)
+		message_logic.ProcessMessage(c.hub.Broadcast, c.roomId, &msg)
 	}
 }
 

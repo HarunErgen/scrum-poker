@@ -157,17 +157,6 @@ func RemoveParticipantFromRoom(roomId, userId string) error {
 	return nil
 }
 
-func TransferScrumMaster(roomId, newScrumMasterID string) error {
-	_, err := DB.Exec(
-		"UPDATE rooms SET scrum_master = $1 WHERE id = $2",
-		newScrumMasterID, roomId,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to transfer Scrum Master: %v", err)
-	}
-	return nil
-}
-
 func UpdateScrumMaster(roomId, newScrumMasterID string) error {
 	_, err := DB.Exec(
 		"UPDATE rooms SET scrum_master = $1 WHERE id = $2",

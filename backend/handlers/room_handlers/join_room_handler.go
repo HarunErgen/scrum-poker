@@ -3,9 +3,9 @@ package room_handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/scrum-poker/backend/db"
+	"github.com/scrum-poker/backend/logic/room_logic"
 	"github.com/scrum-poker/backend/models"
 	"github.com/scrum-poker/backend/session"
 	"github.com/scrum-poker/backend/utils"
@@ -18,8 +18,7 @@ type JoinRoomRequest struct {
 }
 
 type JoinRoomResponse struct {
-	User *models.User `json:"user"`
-	Room *models.Room `json:"room"`
+	UserId string `json:"userId"`
 }
 
 func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,56 +32,38 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	roomId := vars["roomId"]
 
 	currSession := getSession(r)
-	if currSession != nil {
-		room, _ := db.GetRoom(currSession.RoomId)
-		user, _ := db.GetUser(currSession.UserId)
 
-		resp := JoinRoomResponse{
-			User: user,
-			Room: room,
-		}
-
-		websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
-		utils.PrepareJSONResponse(w, http.StatusOK, resp)
-		return
-	}
-
-	if req.UserName == "" {
-		http.Error(w, "User name is required", http.StatusBadRequest)
-		return
-	}
-
-	room, err := db.GetRoom(roomId)
+	userId, err := room_logic.JoinRoom(roomId, req.UserName, currSession, websocket.GlobalHub.Broadcast)
 	if err != nil {
-		http.Error(w, "Room not found", http.StatusNotFound)
+		switch e := err.(type) {
+		case room_logic.ValidationError:
+			http.Error(w, e.Error(), http.StatusBadRequest)
+		case room_logic.NotFoundError:
+			http.Error(w, e.Error(), http.StatusNotFound)
+		case room_logic.DatabaseError:
+			http.Error(w, e.Error(), http.StatusInternalServerError)
+		default:
+			http.Error(w, e.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 
-	userId := uuid.New().String()
-	user := models.NewUser(userId, req.UserName)
-	room.AddParticipant(user)
+	if currSession == nil {
+		sessionID, _ := session.GlobalManager.CreateSession(userId, roomId)
 
-	if err := db.AddParticipantToRoom(roomId, user); err != nil {
-		http.Error(w, "Failed to join room", http.StatusInternalServerError)
-		return
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sessionId",
+			Value:    sessionID,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		})
 	}
 
-	sessionID, _ := session.GlobalManager.CreateSession(userId, roomId)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "sessionId",
-		Value:    sessionID,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+	utils.PrepareJSONResponse(w, http.StatusOK, JoinRoomResponse{
+		UserId: userId,
 	})
-	resp := JoinRoomResponse{
-		User: user,
-		Room: room,
-	}
-	websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
-	utils.PrepareJSONResponse(w, http.StatusOK, resp)
 }
 
 func getSession(r *http.Request) *models.Session {
@@ -120,7 +101,7 @@ func getSession(r *http.Request) *models.Session {
 		return nil
 	}
 
-	currSession.Refresh(session.SessionTTL)
+	currSession.Refresh(session.TTL)
 
 	if err := db.UpdateSession(currSession); err != nil {
 		fmt.Print("Failed to update session.")

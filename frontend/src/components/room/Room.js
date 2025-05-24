@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {useParams, useNavigate, useLocation} from 'react-router-dom';
 import './Room.css';
 
@@ -9,10 +9,10 @@ import QRCodeDialog from './qr-code-dialog/QRCodeDialog';
 
 import Room from '../../models/Room';
 import VoteOption from '../../models/VoteOption';
-import WebSocketService from '../../utils/WebSocketService';
+import WebSocketService from '../../service/WebSocketService';
 import api from "../../utils/AxiosInstance";
 import ParticipantMenu from "./participant-menu/ParticipantMenu";
-import User from "../../models/User";
+import {processWebSocketMessage} from "../../utils/ProcessWebSocketMessage";
 
 const RoomComponent = () => {
   const { roomId } = useParams();
@@ -32,7 +32,9 @@ const RoomComponent = () => {
 
   const wsServiceRef = useRef(null);
   const voteOptions = VoteOption.getAllValues();
-  const isScrumMaster = roomData && roomData.isScrumMaster(userId);
+  const isScrumMaster = useMemo(() => {
+    return roomData && roomData.isScrumMaster(userId);
+  }, [roomData, userId]);
 
   const [menuOpenFor, setMenuOpenFor] = useState(null);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -88,14 +90,8 @@ const RoomComponent = () => {
         setSelectedVote(room.getUserVote(userId));
       }
 
-      const handleWebSocketMessage = async (data) => {
-        if (data.type === 'room_update') {
-          const room = Room.fromApiResponse(data.payload);
-          if (room.votesRevealed) {
-            setSelectedVote('');
-          }
-          setRoomData(room);
-        }
+      const handleWebSocketMessage = async (message) => {
+        processWebSocketMessage(message, room, setRoomData, setSelectedVote);
       };
 
       wsServiceRef.current = new WebSocketService(
@@ -118,10 +114,8 @@ const RoomComponent = () => {
         userName: enteredName
       });
 
-      const newUserId = response.data.user.id;
-
       setUserName(enteredName);
-      setUserId(newUserId);
+      setUserId(response.data.userId);
     } catch (err) {
       console.error('Error joining room:', err);
       setError('Failed to join room. Please try again.');
@@ -134,7 +128,7 @@ const RoomComponent = () => {
 
   const handleLeaveRoom = async () => {
     try {
-      await api.post(`/api/rooms/${roomId}/leave`, {
+      wsServiceRef.current.sendMessage('leave', {
         userId: userId
       });
       await api.delete('/api/sessions');
@@ -148,7 +142,7 @@ const RoomComponent = () => {
     if (selectedVote === vote) {
       setSelectedVote('');
       try {
-        await api.post(`/api/rooms/${roomId}/vote`, {
+        wsServiceRef.current.sendMessage('submit', {
           userId: userId,
           vote: ''
         });
@@ -158,7 +152,7 @@ const RoomComponent = () => {
     } else {
       setSelectedVote(vote);
       try {
-        await api.post(`/api/rooms/${roomId}/vote`, {
+        wsServiceRef.current.sendMessage('submit', {
           userId: userId,
           vote: vote
         });
@@ -170,7 +164,7 @@ const RoomComponent = () => {
 
   const handleRevealVotes = async () => {
     try {
-      await api.post(`/api/rooms/${roomId}/reveal`, {
+      wsServiceRef.current.sendMessage('reveal', {
         userId: userId
       });
     } catch (err) {
@@ -180,7 +174,7 @@ const RoomComponent = () => {
 
   const handleResetVotes = async () => {
     try {
-      await api.post(`/api/rooms/${roomId}/reset`, {
+      wsServiceRef.current.sendMessage('reset', {
         userId: userId
       });
       setSelectedVote('');
@@ -191,7 +185,7 @@ const RoomComponent = () => {
 
   const handleTransferRole = async (newScrumMasterId) => {
     try {
-      await api.post(`/api/rooms/${roomId}/transfer`, {
+      wsServiceRef.current.sendMessage('transfer', {
         userId: userId,
         newScrumMasterId: newScrumMasterId
       });
@@ -207,8 +201,10 @@ const RoomComponent = () => {
 
   const handleRenameSubmit = async (newName) => {
     try {
-      const user = new User(participantToRename, newName, true);
-      await api.put(`/api/users`, user);
+      wsServiceRef.current.sendMessage('rename', {
+        userId: participantToRename,
+        name: newName
+      });
 
       if (participantToRename === userId) {
         setUserName(newName);

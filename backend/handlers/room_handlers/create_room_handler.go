@@ -2,9 +2,7 @@ package room_handlers
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/scrum-poker/backend/db"
-	"github.com/scrum-poker/backend/models"
+	"github.com/scrum-poker/backend/logic/room_logic"
 	"github.com/scrum-poker/backend/utils"
 	"net/http"
 	"time"
@@ -32,29 +30,9 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		http.Error(w, "Room name is required", http.StatusBadRequest)
-		return
-	}
-	if req.UserName == "" {
-		http.Error(w, "User name is required", http.StatusBadRequest)
-		return
-	}
-
-	roomId := uuid.New().String()
-	userId := uuid.New().String()
-
-	user := models.NewUser(userId, req.UserName)
-	room := models.NewRoom(roomId, req.Name, userId)
-	room.AddParticipant(user)
-
-	if err := db.CreateRoom(room); err != nil {
-		http.Error(w, "Failed to create room", http.StatusInternalServerError)
-		return
-	}
-
-	if err := db.AddParticipantToRoom(roomId, user); err != nil {
-		http.Error(w, "Failed to add participant to room", http.StatusInternalServerError)
+	room, user, err := room_logic.CreateRoom(req.Name, req.UserName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -63,7 +41,7 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		Name:          room.Name,
 		CreatedAt:     room.CreatedAt,
 		ScrumMaster:   room.ScrumMaster,
-		Participants:  map[string]interface{}{userId: user.ToJSON()},
+		Participants:  map[string]interface{}{user.Id: user.ToJSON()},
 		Votes:         make(map[string]string),
 		VotesRevealed: false,
 	}

@@ -3,6 +3,7 @@ package session_handlers
 import (
 	"github.com/gorilla/mux"
 	"github.com/scrum-poker/backend/db"
+	"github.com/scrum-poker/backend/models"
 	"github.com/scrum-poker/backend/session"
 	"github.com/scrum-poker/backend/utils"
 	"github.com/scrum-poker/backend/websocket"
@@ -103,7 +104,7 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingSession.Refresh(session.SessionTTL)
+	existingSession.Refresh(session.TTL)
 	if err := db.UpdateSession(existingSession); err != nil {
 		http.Error(w, "Failed to update session", http.StatusInternalServerError)
 		return
@@ -119,8 +120,13 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 		"user":    user.ToJSON(),
 		"room":    room.ToJSON(),
 	}
-
-	websocket.GlobalHub.BroadcastRoomUpdate(roomId, room)
+	message := &models.Message{
+		Action: models.ActionTypeOnline,
+		Payload: map[string]interface{}{
+			"userId": existingSession.UserId,
+		},
+	}
+	websocket.GlobalHub.Broadcast(roomId, message)
 	utils.PrepareJSONResponse(w, http.StatusOK, response)
 }
 
@@ -152,7 +158,5 @@ func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteNoneMode,
 	})
 
-	utils.PrepareJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Session deleted",
-	})
+	utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
 }

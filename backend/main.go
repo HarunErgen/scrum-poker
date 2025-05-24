@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/scrum-poker/backend/websocket"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/scrum-poker/backend/db"
 	"github.com/scrum-poker/backend/handlers"
-	"github.com/scrum-poker/backend/websocket"
 )
 
 func main() {
@@ -35,17 +35,9 @@ func main() {
 
 	apiRouter.HandleFunc("/health", handlers.HealthCheckHandler).Methods("GET")
 
-	apiRouter.HandleFunc("/users", handlers.UpdateUserHandler).Methods("PUT")
-
 	apiRouter.HandleFunc("/rooms", handlers.CreateRoomHandler).Methods("POST")
 	apiRouter.HandleFunc("/rooms/{roomId}", handlers.GetRoomHandler).Methods("GET")
 	apiRouter.HandleFunc("/rooms/{roomId}/join", handlers.JoinRoomHandler).Methods("POST")
-	apiRouter.HandleFunc("/rooms/{roomId}/leave", handlers.LeaveRoomHandler).Methods("POST")
-
-	apiRouter.HandleFunc("/rooms/{roomId}/vote", handlers.SubmitVoteHandler).Methods("POST")
-	apiRouter.HandleFunc("/rooms/{roomId}/reveal", handlers.RevealVotesHandler).Methods("POST")
-	apiRouter.HandleFunc("/rooms/{roomId}/reset", handlers.ResetVotesHandler).Methods("POST")
-	apiRouter.HandleFunc("/rooms/{roomId}/transfer", handlers.TransferScrumMasterHandler).Methods("POST")
 
 	apiRouter.HandleFunc("/sessions/{userId}/{roomId}", handlers.CreateSessionHandler).Methods("POST")
 	apiRouter.HandleFunc("/sessions", handlers.GetSessionHandler).Methods("GET")

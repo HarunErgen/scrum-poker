@@ -1,3 +1,5 @@
+import Message from "../models/Message";
+
 class WebSocketService {
   constructor(roomId, userId, onMessage, onStatusChange) {
     this.roomId = roomId;
@@ -21,7 +23,8 @@ class WebSocketService {
 
     this.ws.onmessage = async (event) => {
       const data = JSON.parse(event.data);
-      await this.onMessage(data);
+      const message = new Message(data.action, data.payload);
+      await this.onMessage(message);
     };
 
     this.ws.onclose = () => {
@@ -33,6 +36,22 @@ class WebSocketService {
       console.error('WebSocket error:', error);
       this.onStatusChange('Error');
     };
+  }
+
+  sendMessage(action, payload) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket is not connected');
+      return false;
+    }
+
+    try {
+      const message = new Message(action, payload);
+      this.ws.send(JSON.stringify(message));
+      return true;
+    } catch (error) {
+      console.error('Error sending WebSocket message:', error);
+      return false;
+    }
   }
 
   disconnect() {

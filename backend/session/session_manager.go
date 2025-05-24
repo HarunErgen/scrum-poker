@@ -10,25 +10,23 @@ import (
 )
 
 const (
-	SessionTTL      = 3 * time.Minute
+	TTL             = 3 * time.Minute
 	CleanupInterval = 1 * time.Minute
 )
-
-type BroadcastFunc func(roomId string, room *models.Room)
 
 var GlobalManager *Manager
 
 type Manager struct {
-	broadcastFunc BroadcastFunc
+	broadcastFunc models.BroadcastFunc
 }
 
-func NewManager(broadcastFunc BroadcastFunc) *Manager {
+func NewManager(broadcastFunc models.BroadcastFunc) *Manager {
 	return &Manager{
 		broadcastFunc: broadcastFunc,
 	}
 }
 
-func InitSessionManager(broadcastFunc BroadcastFunc) {
+func InitSessionManager(broadcastFunc models.BroadcastFunc) {
 	GlobalManager = NewManager(broadcastFunc)
 	GlobalManager.StartCleanupProcess()
 	log.Println("Session manager initialized and cleanup process started")
@@ -36,7 +34,7 @@ func InitSessionManager(broadcastFunc BroadcastFunc) {
 
 func (m *Manager) CreateSession(userId, roomId string) (string, error) {
 	sessionID := uuid.New().String()
-	session := models.NewSession(sessionID, userId, roomId, SessionTTL)
+	session := models.NewSession(sessionID, userId, roomId, TTL)
 
 	if err := db.CreateSession(session); err != nil {
 		return "", err
@@ -54,12 +52,6 @@ func (m *Manager) DeleteSession(sessionID string) error {
 	if err := db.UpdateUserOnlineStatus(session.UserId, false); err != nil {
 		return err
 	}
-
-	room, err := db.GetRoom(session.RoomId)
-	if err == nil {
-		m.broadcastFunc(session.RoomId, room)
-	}
-
 	return db.DeleteSession(sessionID)
 }
 
@@ -92,7 +84,7 @@ func (m *Manager) cleanupExpiredSessions() {
 				userId := session.UserId
 
 				if user, exists := room.Participants[userId]; exists && user.IsOnline {
-					session.Refresh(SessionTTL)
+					session.Refresh(TTL)
 					if err := db.UpdateSession(session); err != nil {
 						log.Printf("Error refreshing session: %v", err)
 					}
@@ -118,6 +110,14 @@ func (m *Manager) cleanupExpiredSessions() {
 								log.Printf("Error updating scrum master: %v", err)
 							}
 						}
+						message := &models.Message{
+							Action: models.ActionTypeTransfer,
+							Payload: map[string]interface{}{
+								"userId":           userId,
+								"newScrumMasterId": room.ScrumMaster,
+							},
+						}
+						m.broadcastFunc(room.Id, message)
 					}
 
 					if err := db.DeleteUser(userId); err != nil {
@@ -127,10 +127,13 @@ func (m *Manager) cleanupExpiredSessions() {
 						log.Printf("Error deleting session: %v", err)
 					}
 
-					updatedRoom, err := db.GetRoom(room.Id)
-					if err == nil {
-						m.broadcastFunc(room.Id, updatedRoom)
+					message := &models.Message{
+						Action: models.ActionTypeLeave,
+						Payload: map[string]interface{}{
+							"userId": userId,
+						},
 					}
+					m.broadcastFunc(room.Id, message)
 				}
 			}
 		}
