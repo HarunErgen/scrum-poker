@@ -31,17 +31,16 @@ func main() {
 	websocket.Init()
 
 	r := mux.NewRouter()
-	apiRouter := r.PathPrefix("/api").Subrouter()
 
-	apiRouter.HandleFunc("/health", handlers.HealthCheckHandler).Methods("GET")
+	r.HandleFunc("/health", handlers.HealthCheckHandler).Methods("GET")
 
-	apiRouter.HandleFunc("/rooms", handlers.CreateRoomHandler).Methods("POST")
-	apiRouter.HandleFunc("/rooms/{roomId}", handlers.GetRoomHandler).Methods("GET")
-	apiRouter.HandleFunc("/rooms/{roomId}/join", handlers.JoinRoomHandler).Methods("POST")
+	r.HandleFunc("/rooms", handlers.CreateRoomHandler).Methods("POST")
+	r.HandleFunc("/rooms/{roomId}", handlers.GetRoomHandler).Methods("GET")
+	r.HandleFunc("/rooms/{roomId}/join", handlers.JoinRoomHandler).Methods("POST")
 
-	apiRouter.HandleFunc("/sessions/{userId}/{roomId}", handlers.CreateSessionHandler).Methods("POST")
-	apiRouter.HandleFunc("/sessions", handlers.GetSessionHandler).Methods("GET")
-	apiRouter.HandleFunc("/sessions", handlers.DeleteSessionHandler).Methods("DELETE")
+	r.HandleFunc("/sessions/{userId}/{roomId}", handlers.CreateSessionHandler).Methods("POST")
+	r.HandleFunc("/sessions", handlers.GetSessionHandler).Methods("GET")
+	r.HandleFunc("/sessions", handlers.DeleteSessionHandler).Methods("DELETE")
 
 	r.HandleFunc("/ws/{roomId}", handlers.WebSocketHandler)
 
