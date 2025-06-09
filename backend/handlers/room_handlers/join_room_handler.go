@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/scrum-poker/backend/config"
 	"github.com/scrum-poker/backend/db"
 	"github.com/scrum-poker/backend/logic/room_logic"
 	"github.com/scrum-poker/backend/models"
@@ -56,8 +57,8 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
+			Secure:   config.Cfg.Cookie.Secure,
+			SameSite: config.Cfg.Cookie.SameSite,
 		})
 	}
 

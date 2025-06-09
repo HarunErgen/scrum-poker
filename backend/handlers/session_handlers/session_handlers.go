@@ -2,6 +2,7 @@ package session_handlers
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/scrum-poker/backend/config"
 	"github.com/scrum-poker/backend/db"
 	"github.com/scrum-poker/backend/models"
 	"github.com/scrum-poker/backend/session"
@@ -48,8 +49,8 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   config.Cfg.Cookie.Secure,
+		SameSite: config.Cfg.Cookie.SameSite,
 	})
 
 	if err := db.UpdateUserOnlineStatus(userId, true); err != nil {
@@ -153,9 +154,9 @@ func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
 		MaxAge:   -1,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   config.Cfg.Cookie.Secure,
+		SameSite: config.Cfg.Cookie.SameSite,
 	})
 
 	utils.PrepareJSONResponse(w, http.StatusOK, []byte("OK"))
