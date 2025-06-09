@@ -23,7 +23,7 @@ const Home = () => {
     }
 
     try {
-      const response = await api.post('/api/rooms', {
+      const response = await api.post('/rooms', {
         name: roomName,
         userName: userName
       });
@@ -32,7 +32,7 @@ const Home = () => {
       const newRoomId = response.data.id;
 
       try {
-        await api.post(`/api/sessions/${userId}/${newRoomId}`);
+        await api.post(`/sessions/${userId}/${newRoomId}`);
       } catch (sessionErr) {
         console.error('Error creating session:', sessionErr);
       }
@@ -54,14 +54,14 @@ const Home = () => {
     }
 
     try {
-      const response = await api.post(`/api/rooms/${roomId}/join`, {
+      const response = await api.post(`/rooms/${roomId}/join`, {
         userName: userName
       });
 
       const userId = response.data.user.id;
 
       try {
-        await api.post(`/api/sessions/${userId}/${roomId}`);
+        await api.post(`/sessions/${userId}/${roomId}`);
       } catch (sessionErr) {
         console.error('Error creating session:', sessionErr);
       }

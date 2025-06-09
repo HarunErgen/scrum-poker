@@ -1,6 +1,7 @@
 import User from "../models/User";
 import ActionTypes from "../models/ActionTypes";
 import Room from "../models/Room";
+import { toast } from 'react-toastify';
 
 export function processWebSocketMessage(message, roomData, setRoomData, setSelectedVote) {
     const { action, payload } = message;
@@ -8,6 +9,7 @@ export function processWebSocketMessage(message, roomData, setRoomData, setSelec
     const actionHandlers = {
         [ActionTypes.JOIN]: () => {
             roomData.participants[payload.id] = new User(payload.id, payload.name, payload.isOnline);
+            toast.info(`${payload.name} joined the room`);
         },
 
         [ActionTypes.OFFLINE]: () => {
@@ -19,7 +21,9 @@ export function processWebSocketMessage(message, roomData, setRoomData, setSelec
         },
 
         [ActionTypes.LEAVE]: () => {
+            const userName = roomData.participants[payload.userId]?.name || 'Someone';
             delete roomData.participants[payload.userId];
+            toast.info(`${userName} left the room`);
         },
 
         [ActionTypes.RENAME]: () => {
