@@ -43,7 +43,7 @@ const RoomComponent = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await api.get('/api/sessions', {
+        const response = await api.get('/sessions', {
           params: {
             roomId: roomId,
           }
@@ -81,7 +81,7 @@ const RoomComponent = () => {
 
   const initializeRoom = async () => {
     try {
-      const response = await api.get(`/api/rooms/${roomId}`);
+      const response = await api.get(`/rooms/${roomId}`);
       const room = Room.fromApiResponse(response.data);
       setRoomData(room);
       setLoading(false);
@@ -110,7 +110,7 @@ const RoomComponent = () => {
 
   const handleJoinRoom = async (enteredName) => {
     try {
-      const response = await api.post(`/api/rooms/${roomId}/join`, {
+      const response = await api.post(`/rooms/${roomId}/join`, {
         userName: enteredName
       });
 
@@ -131,7 +131,7 @@ const RoomComponent = () => {
       wsServiceRef.current.sendMessage('leave', {
         userId: userId
       });
-      await api.delete('/api/sessions');
+      await api.delete('/sessions');
     } catch (err) {
       setError('Failed to leave room. Please try again.');
     }

@@ -1,8 +1,8 @@
 # Scrum Poker Web App
 
-A real-time Scrum Poker application for Agile teams to efficiently estimate tasks. This application allows teams to create estimation rooms, join existing rooms, and vote on tasks using the Fibonacci sequence.
+EC2 URL: http://3.76.42.121/
 
-https://scrum-poker-react.onrender.com/ (Please note: The app may take a few moments to load initially, as the Render hosting service puts it to sleep after 15 minutes of inactivity. Additionally, the first backend request might take a bit longer for the same reason.)
+A real-time Scrum Poker application for Agile teams to efficiently estimate tasks. This application allows teams to create estimation rooms, join existing rooms, and vote on tasks using the Fibonacci sequence.
 
 ## Project Structure
 
