@@ -1,6 +1,6 @@
 # Scrum Poker Web App
 
-EC2 URL: http://3.76.42.121/
+https://scrumpoker.website/
 
 A real-time Scrum Poker application for Agile teams to efficiently estimate tasks. This application allows teams to create estimation rooms, join existing rooms, and vote on tasks using the Fibonacci sequence.
 
