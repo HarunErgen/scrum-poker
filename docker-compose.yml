@@ -50,10 +50,14 @@ services:
         REACT_APP_API_URL: ${REACT_APP_API_URL}
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "443:443"
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL}
     depends_on:
       - backend
+    volumes:
+      - /etc/letsencrypt/live/scrumpoker.website:/etc/letsencrypt/live/scrumpoker.website:ro
+      - /etc/letsencrypt/archive/scrumpoker.website:/etc/letsencrypt/archive/scrumpoker.website:ro
     restart: unless-stopped
     networks:
       - scrum-poker-network
