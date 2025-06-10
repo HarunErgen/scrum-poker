@@ -12,9 +12,22 @@
   box-shadow: var(--box-shadow);
 }
 
+.App-header a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .App-header h1 {
   margin: 0;
   font-size: 1.8rem;
+  display: inline-block;
+}
+
+.header-logo {
+  height: 60px;
+  width: auto;
+  margin-right: 10px;
 }
 
 .App-main {
