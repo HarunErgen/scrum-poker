@@ -11,6 +11,8 @@ RUN npm install
 
 COPY . .
 
+ENV GENERATE_SOURCEMAP=false
+
 RUN npm run build
 
 FROM nginx:alpine
