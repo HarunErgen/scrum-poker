@@ -301,7 +301,7 @@ const RoomComponent = () => {
           <div className="room-info">
             <h2>{roomData.name}</h2>
             <div className="room-id">
-              Room Id: {roomId}
+              Room ID: {roomId}
               <button className="btn btn-sm" onClick={copyRoomLink}>
                 {copied ? 'Copied!' : 'Copy Link'}
               </button>
@@ -311,6 +311,7 @@ const RoomComponent = () => {
             </div>
             <div className="connection-status">
               Status: {connectionStatus}
+              <span className={`status-dot ${connectionStatus === 'Connected' ? 'connected' : connectionStatus === 'Connecting...' ? 'connecting' : 'disconnected'}`}></span>
             </div>
           </div>
           <div className="room-actions">

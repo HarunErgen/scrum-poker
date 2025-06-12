@@ -30,8 +30,35 @@
 }
 
 .connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.8rem;
   color: #666;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.status-dot.connected {
+  background-color: #2ecc71;
+  box-shadow: 0 0 5px #2ecc71;
+}
+
+.status-dot.connecting {
+  background-color: #f39c12;
+  box-shadow: 0 0 5px #f39c12;
+}
+
+.status-dot.disconnected {
+  background-color: #e74c3c;
+  box-shadow: 0 0 5px #e74c3c;
 }
 
 .menu-container {

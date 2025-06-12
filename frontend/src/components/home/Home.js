@@ -129,14 +129,14 @@ const Home = () => {
         {isJoining && (
           <form onSubmit={handleJoinRoom} className="mt-3">
             <div className="form-group">
-              <label htmlFor="roomId">Room Id</label>
+              <label htmlFor="roomId">Room ID</label>
               <input
                 type="text"
                 id="roomId"
                 className="form-control"
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value)}
-                placeholder="Enter the Room Id"
+                placeholder="Enter the Room ID"
               />
             </div>
             <div className="form-group">
