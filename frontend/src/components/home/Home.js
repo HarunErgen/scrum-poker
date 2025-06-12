@@ -77,10 +77,9 @@ const Home = () => {
     <div className="home-container">
       <div className="card">
         <h2 className="text-center">Welcome to Scrum Poker</h2>
-        <p className="text-center">A lightweight, real-time Scrum Poker application for Agile teams</p>
-
+        <p className="text-center">Estimate stories faster. Collaborate better. Stay Agile.</p>
         <div className="actions mt-3">
-          <button 
+          <button
             className="btn btn-primary" 
             onClick={() => { setIsCreating(true); setIsJoining(false); }}
           >
