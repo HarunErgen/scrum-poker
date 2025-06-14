@@ -1,55 +1,130 @@
 # Scrum Poker Web App
 
-https://scrumpoker.website/
+**🔗 Live Demo:** [https://scrumpoker.website/](https://scrumpoker.website/)
 
-A real-time Scrum Poker application for Agile teams to efficiently estimate tasks. This application allows teams to create estimation rooms, join existing rooms, and vote on tasks using the Fibonacci sequence.
+Scrum Poker is a real-time estimation tool built for Agile teams to collaboratively plan sprints. Participants can create or join rooms, submit task estimates using the Fibonacci sequence, and reveal votes in sync—facilitating transparent, fast-paced planning meetings.
 
-## Project Structure
+---
 
-The project is organized into two main components:
+## 🧱 Project Architecture
 
-- **Frontend**: A React.js application with a responsive design for desktop and mobile
-- **Backend**: A Go application with WebSocket support for real-time communication and PostgreSQL for data persistence
+This project consists of two main components:
 
-## Features
+* **Frontend:** A responsive React.js app (mobile + desktop)
+* **Backend:** A Go service with WebSocket support and PostgreSQL for persistence
 
-- Create or join estimation rooms instantly
-- Support for multiple concurrent rooms
-- Scrum Master role management
-- Real-time voting using Fibonacci sequence
-- Vote revelation controlled by the Scrum Master
-- Responsive design for desktop and mobile devices
-- Session management for short-time disconnections.
+---
 
-## Getting Started
+## 🚀 Features
+
+* 🔹 Create or join real-time estimation rooms
+* 🔹 Support for multiple concurrent rooms
+* 🔹 Scrum Master role with voting control
+* 🔹 Fibonacci-based vote selection
+* 🔹 Vote reveal/reset functionality
+* 🔹 Automatic user presence updates (online/offline)
+* 🔹 Resilient to short-term disconnections
+
+---
+
+## 🕸️ Real-Time Communication
+
+Scrum Poker uses WebSockets for persistent, low-latency messaging. Here's how the system handles real-time collaboration:
+
+### 📌 Persistent Connections
+
+Each client connects once and maintains a live WebSocket session:
+
+![1](https://github.com/user-attachments/assets/f6171397-020a-4810-a70d-3a8226fe1d35)
+
+### 🔁 Message Broadcasting
+
+Whenever a user performs an action (e.g., submit vote, rename), a structured WebSocket message is sent to the backend. It processes the request and rebroadcasts an updated room state to all clients:
+
+![2 (1)](https://github.com/user-attachments/assets/7cf88456-b51e-4454-a612-1eec1665a65d)
+
+Example message structure:
+
+```go
+Message {
+  Action: models.ActionType,
+  Payload: map[string]interface{}
+}
+```
+
+---
+
+### 🧠 Backend Message Handling (Go)
+
+Each WebSocket message is processed by the backend's `ProcessMessage` function. Actions like `submit`, `reveal`, `rename`, or `leave` are handled explicitly:
+
+```go
+func ProcessMessage(broadcastFunc, roomId, msg)
+```
+
+Example: Submitting a vote
+
+```go
+Payload: {
+  "userId": "123",
+  "vote": "5"
+}
+```
+
+The backend updates the database and broadcasts:
+
+```go
+Action: "submit",
+Payload: { "userId": "123", "vote": "5" }
+```
+
+---
+
+### 🎯 Frontend Message Handling (React)
+
+Messages are processed on the UI with a centralized handler:
+
+```js
+processWebSocketMessage(message, roomData, setRoomData, setSelectedVote)
+```
+
+This dynamically updates room state based on action types like:
+
+* `join` → Add user to participants
+* `submit` → Register vote
+* `reveal` → Reveal all votes
+* `reset` → Clear votes and reset selection
+* `rename`, `leave`, `offline`, `online`, `transfer` → Reflect changes instantly
+
+UI feedback (e.g., toasts) and state re-renders are triggered accordingly.
+
+---
+
+## 🧪 Getting Started
 
 ### Prerequisites
 
-- Docker and Docker Compose
+* [Docker](https://www.docker.com/)
+* [Docker Compose](https://docs.docker.com/compose/)
 
-### Running the Application
-
-1. Clone the repository
-2. Run the application using Docker Compose:
+### Quick Start
 
 ```bash
+git clone https://github.com/yourusername/scrum-poker.git
+cd scrum-poker
 docker-compose up -d
 ```
 
-3. Access the application:
-   - Frontend: http://localhost
-   - Backend API: http://localhost:8080/api/health
+* Frontend: [http://localhost](http://localhost)
+* API: [http://localhost:8080](http://localhost:8080)
 
-## Development
+---
 
-### Frontend Development
+## 🧑‍💻 Local Development
 
-#### Prerequisites
+### Frontend
 
-- Node.js 16+
-- npm or yarn
-
-#### Installation
+* **Requirements:** Node.js 16+, npm or yarn
 
 ```bash
 cd frontend
@@ -57,24 +132,21 @@ npm install
 npm start
 ```
 
-#### Building for Production
+**Build for production:**
 
 ```bash
 npm run build
 ```
 
-#### Environment Variables
+**Env Variables:**
 
-- `REACT_APP_API_URL` - URL of the backend API (default: http://localhost:8080)
+* `REACT_APP_API_URL` – Backend endpoint
 
-### Backend Development
+---
 
-#### Prerequisites
+### Backend
 
-- Go 1.23.0
-- PostgreSQL 14 (or use the Docker Compose setup)
-
-#### Installation
+* **Requirements:** Go 1.23+, PostgreSQL 14+
 
 ```bash
 cd backend
@@ -82,255 +154,91 @@ go mod download
 go run main.go
 ```
 
-#### Environment Variables
+**Env Variables:**
 
-- `BACKEND_PORT` - Server port (default: 8080)
-- `FRONTEND_PORT` - Port for the frontend application (default: 80)
-- `REACT_APP_API_URL` - API url (default: http://localhost:8080)
-- `DB_HOST` - PostgreSQL host
-- `DB_PORT` - PostgreSQL port
-- `DB_USER` - PostgreSQL user
-- `DB_PASSWORD` - PostgreSQL password
-- `DB_NAME` - PostgreSQL database name
-- `DB_SSLMODE` - PostgreSQL SSL mode
-- `ALLOWED_ORIGINS` - Allowed CORS origins.
+* `BACKEND_PORT`
+* `FRONTEND_PORT`
+* `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE`
+* `REACT_APP_API_URL`
+* `ALLOWED_ORIGINS` (for CORS)
 
-## API Documentation
+---
 
-### Room Management
+## 📡 API & WebSocket
 
-#### Create a Room
+### REST API
 
-- **URL**: `/api/rooms`
-- **Method**: `POST`
-- **Request Body**:
-  ```json
-  {
-    "name": "Sprint Planning",
-    "userName": "John Doe"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "id": "room-id",
-    "name": "Sprint Planning",
-    "createdAt": "2023-01-01T12:00:00Z",
-    "scrumMaster": "user-id",
-    "participants": {
-      "user-id": {
-        "id": "user-id",
-        "name": "John Doe",
-        "isOnline": true,
-        "createdAt": "2023-01-01T12:00:00Z"
-      }
-    },
-    "votes": {},
-    "votesRevealed": false
-  }
-  ```
-
-#### Get Room Details
-
-- **URL**: `/api/rooms/{roomId}`
-- **Method**: `GET`
-- **Response**: Room details (same format as above)
-
-#### Join a Room
-
-- **URL**: `/api/rooms/{roomId}/join`
-- **Method**: `POST`
-- **Request Body**:
-  ```json
-  {
-    "userName": "Jane Smith"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "room": {
-      "id": "room-id",
-      "name": "Sprint Planning",
-      "createdAt": "2023-01-01T12:00:00Z",
-      "scrumMaster": "user-id",
-      "participants": {
-        "user-id": {
-          "id": "user-id",
-          "name": "John Doe",
-          "isOnline": true,
-          "createdAt": "2023-01-01T12:00:00Z"
-        }
-      },
-      "votes": {},
-      "votesRevealed": false
-    },
-    "user": {
-      "id": "user-id",
-      "name": "Jane Smith",
-      "isOnline": true,
-      "createdAt": "2023-01-01T12:05:00Z"
-    }
-  }
-  ```
+| Action           | Method | Endpoint               |
+| ---------------- | ------ | ---------------------- |
+| Create Room      | POST   | `/rooms`               |
+| Join Room        | POST   | `/rooms/{roomId}/join` |
+| Get Room Details | GET    | `/rooms/{roomId}`      |
 
 ### WebSocket
 
-- **URL**: `/ws/{roomId}?userId={userId}`
-- **Protocol**: WebSocket
-- **Messages**:
-  - Room updates are sent as JSON with the following format:
-    ```json
-    {
-      "type": "room_update",
-      "roomId": "room-id",
-      "userId": "user-id",
-      "payload": {
-        "id": "room-id",
-        "name": "Sprint Planning",
-        "createdAt": "2023-01-01T12:00:00Z",
-        "scrumMaster": "user-id",
-        "participants": {
-          "user-id": {
-            "id": "user-id",
-            "name": "John Doe",
-            "isOnline": true,
-            "createdAt": "2023-01-01T12:00:00Z"
-          }
-        },
-        "votes": {},
-        "votesRevealed": false
-      }
-    }
-    ```
+| Endpoint                       | Description                    |
+| ------------------------------ | ------------------------------ |
+| `/ws/{roomId}?userId={userId}` | Establish WebSocket connection |
 
-### Session Management
+**Example Message Payload:**
 
-#### Create Session
+```json
+{
+  "action": "submit",
+  "payload": {
+    "userId": "abc123",
+    "vote": "5"
+  }
+}
+```
 
-- **URL**: `/api/sessions/{userId}/{roomId}`
-- **Method**: `POST`
-- **Request Body**: `None`
-
-- **Response**:
-  - Status: `201 Created`
-  - Set-Cookie: `sessionId=<session-id>; HttpOnly; Secure; SameSite=Lax`
-  - Body:
-      ```json
-    {
-        "sessionId": "session-id"
-    }
-    ```
-
-- **Error Responses**:
-  - `400 Bad Request`: If userId or roomId is missing.
-  - `403 Forbidden`: If the user is not a participant in the room.
-  - `404 Not Found`: If the user or room does not exist.
-  - `500 Internal Server Error`: If session creation or user status update fails.
+All messages follow this pattern and are rebroadcast to clients for UI synchronization.
 
 ---
 
-#### Get Session
-- **URL**: `/api/sessions`
-- **Method**: `GET`
-- **Query Parameters**:
-  - `roomId` (string) – The ID of the room to validate against the session.
+## 🔐 Session Management
 
-- **Request Headers**:
-  - `Cookie`: sessionId=<session-id>
+Session management is cookie-based and supports short disconnections:
 
-- **Response**:
-  - Status: 200 OK
-  - Body:
-  ```json
-    {
-      "session": {
-        "id": "session-id",
-        "userId": "user-id",
-        "roomId": "room-id",
-        "createdAt": "2023-01-01T12:00:00Z",
-        "expiresAt": "2023-01-01T13:00:00Z"
-      },
-      "user": {
-        "id": "user-id",
-        "name": "John Doe",
-        "isOnline": true,
-        "createdAt": "2023-01-01T12:00:00Z"
-      },
-      "room": {
-        "id": "room-id",
-        "name": "Sprint Planning",
-        "createdAt": "2023-01-01T12:00:00Z",
-        "scrumMaster": "user-id",
-        "participants": {
-          "user-id": {
-            "id": "user-id",
-            "name": "John Doe",
-            "isOnline": true,
-            "createdAt": "2023-01-01T12:00:00Z"
-          }
-        },
-        "votes": {},
-        "votesRevealed": false
-      }
-    }
-  ```
-
-- **Error Responses**:
-  - `400 Bad Request`: If the session ID is missing.
-  - `401 Unauthorized`: If the session has expired.
-  - `403 Forbidden`: If the room ID in query does not match the session.
-  - `404 Not Found`: If the session, user, or room is not found.
-  - `500 Internal Server Error`: If session refresh or user update fails.
+| Action         | Method | Endpoint                         |
+| -------------- | ------ | -------------------------------- |
+| Create Session | POST   | `/sessions/{userId}/{roomId}`    |
+| Validate       | GET    | `/sessions?roomId={roomId}`      |
+| Delete         | DELETE | `/sessions` (via session cookie) |
 
 ---
 
-#### Delete Session
-
-- **URL**: `/api/sessions`
-- **Method**: `DELETE`
-- **Request Headers**:
-  - Cookie: sessionId=<session-id>
-- **Response**:
-  - Status: `200 OK`
-  - Set-Cookie: `sessionId=; Max-Age=-1; HttpOnly; Secure; SameSite=Lax`
-  - Body:
-    ```json
-    {
-      "message": "Session deleted"
-    }
-    ```
-
-- Error Responses:
-  - `400 Bad Request`: If session ID is missing.
-  - `404 Not Found`: If the session cookie is not present.
-  - `500 Internal Server Error`: If session deletion fails.
-
-## Technical Details
+## ⚙️ Tech Stack
 
 ### Backend
 
-- **Language**: Go
-- **Database**: PostgreSQL
-- **Real-time Communication**: WebSockets
-- **API**: RESTful with JSON
+* Language: **Go**
+* Database: **PostgreSQL**
+* Real-time: **WebSockets**
+* API: **REST (JSON)**
 
 ### Frontend
 
-- **Framework**: React.js
-- **HTTP Client**: Axios
-- **Routing**: React Router
-- **Styling**: CSS
-- **Server**: Nginx (in production)
+* Framework: **React.js**
+* State: **React Hooks**
+* Routing: **React Router**
+* HTTP: **Axios**
+* Served via **Nginx**
 
-## Docker Configuration
+---
 
-The application is fully dockerized with the following services:
+## 🐳 Dockerized Environment
 
-- **backend**: Go application
-- **postgres**: PostgreSQL database
-- **frontend**: React application served via Nginx
+All services are containerized and orchestrated via Docker Compose:
 
-## License
+* `frontend` – React app served through Nginx
+* `backend` – Go-based WebSocket server
+* `postgres` – Persistent database
 
-MIT
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
