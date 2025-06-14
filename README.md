@@ -100,23 +100,43 @@ UI feedback (e.g., toasts) and state re-renders are triggered accordingly.
 
 ---
 
-## 🧪 Getting Started
+## ☁️ Deployment (EC2)
 
-### Prerequisites
+The Scrum Poker app is deployed on a single **Amazon EC2 instance**.
 
-* [Docker](https://www.docker.com/)
-* [Docker Compose](https://docs.docker.com/compose/)
+* All services (frontend, backend, and database) run as Docker containers managed by Docker Compose.
+* The **React frontend** is served via Nginx and exposed over HTTPS.
+* The **Go backend** handles API and WebSocket traffic.
+* The **PostgreSQL** database is used for persistence.
 
-### Quick Start
+### 🔁 Request/Response Flow
 
-```bash
-git clone https://github.com/yourusername/scrum-poker.git
-cd scrum-poker
-docker-compose up -d
+```plaintext
+       User Browser
+         (Client)
+            │
+         HTTPS / WSS
+            │
+            ▼
+    ┌────────────────────┐
+    │    EC2 Instance    │
+    │  (Docker Compose)  │
+    └────────────────────┘
+        │         │
+        ▼         ▼
+  ┌────────┐   ┌────────┐
+  │Frontend│   │Backend │◄───▶ PostgreSQL
+  │ React  │   │   Go   │
+  └────────┘   └────────┘
+        ▲         ▲
+        └─────────┘
+       Internal Network
 ```
 
-* Frontend: [http://localhost](http://localhost)
-* API: [http://localhost:8080](http://localhost:8080)
+* The browser sends HTTP(S) and WebSocket requests to the EC2 public IP or domain.
+* Nginx (inside the frontend container) serves the React app and proxies API/WebSocket requests to the backend.
+* The backend processes logic and communicates with the PostgreSQL container.
+* Responses and real-time updates are sent back to clients via WebSocket or HTTP.
 
 ---
 
@@ -141,8 +161,6 @@ npm run build
 **Env Variables:**
 
 * `REACT_APP_API_URL` – Backend endpoint
-
----
 
 ### Backend
 
