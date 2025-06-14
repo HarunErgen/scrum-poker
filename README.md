@@ -17,13 +17,13 @@ This project consists of two main components:
 
 ## 🚀 Features
 
-* 🔹 Create or join real-time estimation rooms
-* 🔹 Support for multiple concurrent rooms
-* 🔹 Scrum Master role with voting control
-* 🔹 Fibonacci-based vote selection
-* 🔹 Vote reveal/reset functionality
-* 🔹 Automatic user presence updates (online/offline)
-* 🔹 Resilient to short-term disconnections
+* Create or join real-time estimation rooms
+* Support for multiple concurrent rooms
+* Scrum Master role with voting control
+* Fibonacci-based vote selection
+* Vote reveal/reset functionality
+* Automatic user presence updates (online/offline)
+* Resilient to short-term disconnections
 
 ---
 
@@ -240,5 +240,3 @@ All services are containerized and orchestrated via Docker Compose:
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
-
----
