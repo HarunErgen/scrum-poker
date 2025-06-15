@@ -23,6 +23,12 @@ func ProcessMessage(broadcastFunc models.BroadcastFunc, roomId string, msg *mode
 		handleRenameUser(broadcastFunc, roomId, msg)
 	case models.ActionTypeLeave:
 		handleLeaveRoom(broadcastFunc, roomId, msg)
+	case models.ActionTypePing:
+		pongMsg := &models.Message{
+			Action:  models.ActionTypePong,
+			Payload: msg.Payload,
+		}
+		broadcastFunc(roomId, pongMsg)
 	default:
 		broadcastFunc(roomId, msg)
 	}

@@ -42,6 +42,7 @@ const RoomComponent = () => {
 
   useEffect(() => {
     const checkSession = async () => {
+      console.log(`Checking session for roomId=${roomId}, current userId=${userId}`);
       try {
         const response = await api.get('/sessions', {
           params: {
@@ -50,10 +51,26 @@ const RoomComponent = () => {
         });
 
         if (response.data && response.data.user) {
-          setUserId(response.data.user.id);
+          const newUserId = response.data.user.id;
+          console.log(`Session found with userId=${newUserId}`);
+
+          setUserId(newUserId);
           setUserName(response.data.user.name);
           setShowNamePrompt(false);
-          initializeRoom();
+
+          if (wsServiceRef.current) {
+            console.log(`WebSocketService exists, updating userId to ${newUserId}`);
+            wsServiceRef.current.updateUserId(newUserId);
+          } else {
+            console.log(`WebSocketService doesn't exist yet, will be created with userId=${newUserId}`);
+          }
+
+          if (newUserId) {
+            console.log(`Initializing room with valid userId=${newUserId}`);
+            await initializeRoom();
+          } else {
+            console.log(`Not initializing room because userId is null`);
+          }
           return;
         }
       } catch (err) {
@@ -61,11 +78,20 @@ const RoomComponent = () => {
       }
 
       if (!userId || !userName) {
+        console.log(`No userId (${userId}) or userName (${userName}), showing name prompt`);
         setShowNamePrompt(true);
         return;
       }
+
+      console.log(`Using existing userId=${userId} and userName=${userName}`);
       setShowNamePrompt(false);
-      initializeRoom();
+
+      if (userId) {
+        console.log(`Initializing room with existing userId=${userId}`);
+        await initializeRoom();
+      } else {
+        console.log(`Not initializing room because userId is null`);
+      }
     };
 
     checkSession();
@@ -80,6 +106,7 @@ const RoomComponent = () => {
   }, []);
 
   const initializeRoom = async () => {
+    console.log(`Initializing room with roomId=${roomId}, userId=${userId}`);
     try {
       const response = await api.get(`/rooms/${roomId}`);
       const room = Room.fromApiResponse(response.data);
@@ -94,15 +121,29 @@ const RoomComponent = () => {
         processWebSocketMessage(message, room, setRoomData, setSelectedVote);
       };
 
-      wsServiceRef.current = new WebSocketService(
-          roomId,
-          userId,
-          handleWebSocketMessage,
-          setConnectionStatus
-      );
+      if (!wsServiceRef.current) {
+        if (userId) {
+          console.log(`Creating new WebSocketService with roomId=${roomId}, userId=${userId}`);
+          wsServiceRef.current = new WebSocketService(
+              roomId,
+              userId,
+              handleWebSocketMessage,
+              setConnectionStatus
+          );
+          wsServiceRef.current.connect();
+        } else {
+          console.log(`Not creating WebSocketService yet because userId is null`);
+        }
+      } else {
+        console.log(`WebSocketService already exists, updating room data only`);
 
-      wsServiceRef.current.connect();
+        if (userId && !wsServiceRef.current.userId) {
+          console.log(`Updating WebSocketService with valid userId=${userId}`);
+          wsServiceRef.current.updateUserId(userId);
+        }
+      }
     } catch (err) {
+      console.error('Error initializing room:', err);
       setError('Failed to load room. Please try again.');
       setLoading(false);
     }
@@ -114,8 +155,13 @@ const RoomComponent = () => {
         userName: enteredName
       });
 
+      const newUserId = response.data.userId;
       setUserName(enteredName);
-      setUserId(response.data.userId);
+      setUserId(newUserId);
+
+      if (wsServiceRef.current) {
+        wsServiceRef.current.updateUserId(newUserId);
+      }
     } catch (err) {
       console.error('Error joining room:', err);
       setError('Failed to join room. Please try again.');
@@ -371,9 +417,6 @@ const RoomComponent = () => {
                       >
                         {participant.name}{' '}
                         {participant.id === roomData.scrumMaster && '(Scrum Master)'}
-                        {!participant.isOnline && (
-                            <span className="offline-indicator"> (Offline)</span>
-                        )}
                       </span>
 
                       {roomData.votesRevealed && participantVote && (

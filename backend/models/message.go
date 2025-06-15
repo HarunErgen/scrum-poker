@@ -12,6 +12,8 @@ const (
 	ActionTypeReveal   ActionType = "reveal"
 	ActionTypeReset    ActionType = "reset"
 	ActionTypeTransfer ActionType = "transfer"
+	ActionTypePing     ActionType = "ping"
+	ActionTypePong     ActionType = "pong"
 )
 
 type Message struct {

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TTL             = 3 * time.Minute
+	TTL             = 6 * time.Minute
 	CleanupInterval = 1 * time.Minute
 )
 
