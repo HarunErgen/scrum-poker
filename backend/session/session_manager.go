@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TTL             = 6 * time.Minute
+	TTL             = 20 * time.Minute
 	CleanupInterval = 1 * time.Minute
 )
 
@@ -77,7 +77,6 @@ func (m *Manager) cleanupExpiredSessions() {
 			if session.IsExpired() {
 				userId := session.UserId
 
-				// Check if user is connected via WebSocket (single source of truth)
 				if _, exists := room.Participants[userId]; exists && m.connectionChecker(room.Id, userId) {
 					session.Refresh(TTL)
 					if err := db.UpdateSession(session); err != nil {

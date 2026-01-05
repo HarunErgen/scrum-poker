@@ -105,8 +105,6 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Online status is determined by WebSocket connection, not stored in DB
-	// The frontend will receive online/offline messages via WebSocket
 	response := map[string]interface{}{
 		"session": existingSession.ToJSON(),
 		"user":    user.ToJSON(),

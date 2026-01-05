@@ -98,9 +98,6 @@ func getSession(r *http.Request) *models.Session {
 		return nil
 	}
 
-	// Online status is determined by WebSocket connection
-	// No need to update it here
-
 	currSession.Refresh(session.TTL)
 
 	if err := db.UpdateSession(currSession); err != nil {

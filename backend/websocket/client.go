@@ -95,7 +95,6 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			// Batch pending messages
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
@@ -131,10 +130,8 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomId, userId st
 		userId: userId,
 	}
 
-	// Register directly - no channels needed
 	hub.RegisterClient(client)
 
-	// Start pumps
 	go client.writePump()
 	go client.readPump()
 }

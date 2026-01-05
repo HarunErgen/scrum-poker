@@ -124,7 +124,6 @@ func (h *Hub) handleUserOffline(roomId, userId string) {
 		return
 	}
 
-	// Refresh or create session for potential reconnection
 	existingSession, err := db.GetSessionByUserID(userId)
 	if err == nil && existingSession != nil {
 		existingSession.Refresh(session.TTL)
@@ -189,7 +188,6 @@ func (h *Hub) Broadcast(roomId string, msg *models.Message) {
 	}
 }
 
-// GetConnectedUserIds returns all connected user IDs for a room
 func (h *Hub) GetConnectedUserIds(roomId string) []string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
