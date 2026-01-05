@@ -1,3 +1,5 @@
+import User from './User';
+
 class Room {
   constructor(id, name, scrumMaster, participants, votes, votesRevealed) {
     this.id = id || '';
@@ -25,7 +27,13 @@ class Room {
   }
 
   static fromApiResponse(data) {
-    return new Room(data.id, data.name, data.scrumMaster, data.participants, data.votes, data.votesRevealed);
+    const participants = {};
+    if (data.participants) {
+      Object.entries(data.participants).forEach(([id, p]) => {
+        participants[id] = new User(p.id, p.name, true);
+      });
+    }
+    return new Room(data.id, data.name, data.scrumMaster, participants, data.votes, data.votesRevealed);
   }
 }
 
