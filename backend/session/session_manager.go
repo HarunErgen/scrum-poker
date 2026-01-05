@@ -17,17 +17,19 @@ const (
 var GlobalManager *Manager
 
 type Manager struct {
-	broadcastFunc models.BroadcastFunc
+	broadcastFunc     models.BroadcastFunc
+	connectionChecker models.ConnectionChecker
 }
 
-func NewManager(broadcastFunc models.BroadcastFunc) *Manager {
+func NewManager(broadcastFunc models.BroadcastFunc, connectionChecker models.ConnectionChecker) *Manager {
 	return &Manager{
-		broadcastFunc: broadcastFunc,
+		broadcastFunc:     broadcastFunc,
+		connectionChecker: connectionChecker,
 	}
 }
 
-func InitSessionManager(broadcastFunc models.BroadcastFunc) {
-	GlobalManager = NewManager(broadcastFunc)
+func InitSessionManager(broadcastFunc models.BroadcastFunc, connectionChecker models.ConnectionChecker) {
+	GlobalManager = NewManager(broadcastFunc, connectionChecker)
 	GlobalManager.StartCleanupProcess()
 	log.Println("Session manager initialized and cleanup process started")
 }
@@ -44,14 +46,6 @@ func (m *Manager) CreateSession(userId, roomId string) (string, error) {
 }
 
 func (m *Manager) DeleteSession(sessionID string) error {
-	session, err := db.GetSession(sessionID)
-	if err != nil {
-		return err
-	}
-
-	if err := db.UpdateUserOnlineStatus(session.UserId, false); err != nil {
-		return err
-	}
 	return db.DeleteSession(sessionID)
 }
 
@@ -83,7 +77,8 @@ func (m *Manager) cleanupExpiredSessions() {
 			if session.IsExpired() {
 				userId := session.UserId
 
-				if user, exists := room.Participants[userId]; exists && user.IsOnline {
+				// Check if user is connected via WebSocket (single source of truth)
+				if _, exists := room.Participants[userId]; exists && m.connectionChecker(room.Id, userId) {
 					session.Refresh(TTL)
 					if err := db.UpdateSession(session); err != nil {
 						log.Printf("Error refreshing session: %v", err)

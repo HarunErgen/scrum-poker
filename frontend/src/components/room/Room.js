@@ -100,7 +100,7 @@ const RoomComponent = () => {
   useEffect(() => {
     return () => {
       if (wsServiceRef.current) {
-        wsServiceRef.current.disconnect();
+        wsServiceRef.current.disconnect(true);
       }
     };
   }, []);

@@ -21,9 +21,9 @@ func GetUser(userId string) (*models.User, error) {
 	var user models.User
 	var createdAt time.Time
 	err := DB.QueryRow(
-		"SELECT id, name, created_at, is_online FROM users WHERE id = $1",
+		"SELECT id, name, created_at FROM users WHERE id = $1",
 		userId,
-	).Scan(&user.Id, &user.Name, &createdAt, &user.IsOnline)
+	).Scan(&user.Id, &user.Name, &createdAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -36,24 +36,13 @@ func GetUser(userId string) (*models.User, error) {
 	return &user, nil
 }
 
-func UpdateUserOnlineStatus(userId string, isOnline bool) error {
+func UpdateUserName(userId, name string) error {
 	_, err := DB.Exec(
-		"UPDATE users SET is_online = $1 WHERE id = $2",
-		isOnline, userId,
+		"UPDATE users SET name = $1 WHERE id = $2",
+		name, userId,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update user online status: %v", err)
-	}
-	return nil
-}
-
-func UpdateUser(user *models.User) error {
-	_, err := DB.Exec(
-		"UPDATE users SET name = $1, is_online = $2 WHERE id = $3",
-		user.Name, user.IsOnline, user.Id,
-	)
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to update user name: %v", err)
 	}
 	return nil
 }

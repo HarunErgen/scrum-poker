@@ -3,6 +3,8 @@ package room_handlers
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/scrum-poker/backend/config"
 	"github.com/scrum-poker/backend/db"
@@ -11,7 +13,6 @@ import (
 	"github.com/scrum-poker/backend/session"
 	"github.com/scrum-poker/backend/utils"
 	"github.com/scrum-poker/backend/websocket"
-	"net/http"
 )
 
 type JoinRoomRequest struct {
@@ -97,10 +98,8 @@ func getSession(r *http.Request) *models.Session {
 		return nil
 	}
 
-	if err := db.UpdateUserOnlineStatus(currSession.UserId, true); err != nil {
-		fmt.Print("Failed to update user status.")
-		return nil
-	}
+	// Online status is determined by WebSocket connection
+	// No need to update it here
 
 	currSession.Refresh(session.TTL)
 

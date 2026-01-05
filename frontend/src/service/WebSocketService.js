@@ -14,6 +14,8 @@ class WebSocketService {
     this.lastPongTime = null;
     this.messageQueue = [];
     this.isConnected = false;
+    this.visibilityHandler = null;
+    this.isTabVisible = !document.hidden;
   }
 
   connect() {
@@ -40,6 +42,8 @@ class WebSocketService {
       }
       return;
     }
+
+    this.setupVisibilityHandler();
 
     console.log(`Connecting WebSocket with roomId=${this.roomId} and userId=${this.userId}`);
     this.ws = new WebSocket(`${process.env.REACT_APP_API_URL}/ws/${this.roomId}?userId=${this.userId}`);
@@ -129,6 +133,74 @@ class WebSocketService {
     }
   }
 
+  setupVisibilityHandler() {
+    if (this.visibilityHandler) {
+      return;
+    }
+
+    this.visibilityHandler = () => {
+      const wasVisible = this.isTabVisible;
+      this.isTabVisible = !document.hidden;
+
+      if (!wasVisible && this.isTabVisible) {
+        console.log('Tab became visible, checking connection...');
+        this.handleTabVisible();
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+    console.log('Visibility change handler set up');
+  }
+
+  removeVisibilityHandler() {
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+      console.log('Visibility change handler removed');
+    }
+  }
+
+  handleTabVisible() {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.log('WebSocket not open when tab became visible, reconnecting immediately...');
+      this.isConnected = false;
+      
+      if (this.reconnectTimeout) {
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = null;
+      }
+      
+      this.reconnectAttempts = 0;
+      this.onStatusChange('Reconnecting...');
+      this.connect();
+      return;
+    }
+
+    console.log('WebSocket appears connected, verifying with ping...');
+    try {
+      const pingMessage = { action: 'ping', payload: { userId: this.userId } };
+      this.ws.send(JSON.stringify(pingMessage));
+      
+      setTimeout(() => {
+        if (this.lastPongTime && Date.now() - this.lastPongTime > 5000) {
+          console.log('No recent pong after visibility check, forcing reconnect...');
+          this.forceReconnect();
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('Error sending ping on visibility change:', error);
+      this.forceReconnect();
+    }
+  }
+
+  forceReconnect() {
+    console.log('Force reconnecting...');
+    this.disconnect();
+    this.reconnectAttempts = 0;
+    this.onStatusChange('Reconnecting...');
+    this.connect();
+  }
+
   reconnect() {
     if (this.reconnectTimeout) {
       console.log('Clearing existing reconnect timeout');
@@ -211,7 +283,7 @@ class WebSocketService {
     }
   }
 
-  disconnect() {
+  disconnect(removeVisibility = false) {
     console.log('Disconnecting WebSocket');
 
     this.stopHeartbeat();
@@ -240,6 +312,10 @@ class WebSocketService {
       this.ws.onerror = null;
 
       this.ws = null;
+    }
+
+    if (removeVisibility) {
+      this.removeVisibilityHandler();
     }
 
     this.isConnected = false;

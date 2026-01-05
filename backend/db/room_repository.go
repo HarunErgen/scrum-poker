@@ -49,7 +49,7 @@ func GetRoom(roomId string) (*models.Room, error) {
 	room.VotesRevealed = false
 
 	rows, err := DB.Query(`
-		SELECT u.id, u.name, u.created_at, u.is_online
+		SELECT u.id, u.name, u.created_at
 		FROM users u
 		JOIN room_participants rp ON u.id = rp.user_id
 		WHERE rp.room_id = $1
@@ -62,7 +62,7 @@ func GetRoom(roomId string) (*models.Room, error) {
 	for rows.Next() {
 		user := new(models.User)
 		var userCreatedAt time.Time
-		err := rows.Scan(&user.Id, &user.Name, &userCreatedAt, &user.IsOnline)
+		err := rows.Scan(&user.Id, &user.Name, &userCreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %v", err)
 		}
@@ -103,16 +103,16 @@ func AddParticipantToRoom(roomId string, user *models.User) error {
 
 	if count == 0 {
 		_, err = tx.Exec(
-			"INSERT INTO users (id, name, created_at, is_online) VALUES ($1, $2, $3, $4)",
-			user.Id, user.Name, user.CreatedAt, user.IsOnline,
+			"INSERT INTO users (id, name, created_at) VALUES ($1, $2, $3)",
+			user.Id, user.Name, user.CreatedAt,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create user: %v", err)
 		}
 	} else {
 		_, err = tx.Exec(
-			"UPDATE users SET name = $1, is_online = $2 WHERE id = $3",
-			user.Name, user.IsOnline, user.Id,
+			"UPDATE users SET name = $1 WHERE id = $2",
+			user.Name, user.Id,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %v", err)
@@ -189,7 +189,7 @@ func GetAllRooms() ([]*models.Room, error) {
 		room.VotesRevealed = false
 
 		participantRows, err := DB.Query(`
-			SELECT u.id, u.name, u.created_at, u.is_online
+			SELECT u.id, u.name, u.created_at
 			FROM users u
 			JOIN room_participants rp ON u.id = rp.user_id
 			WHERE rp.room_id = $1
@@ -202,7 +202,7 @@ func GetAllRooms() ([]*models.Room, error) {
 		for participantRows.Next() {
 			user := new(models.User)
 			var userCreatedAt time.Time
-			err := participantRows.Scan(&user.Id, &user.Name, &userCreatedAt, &user.IsOnline)
+			err := participantRows.Scan(&user.Id, &user.Name, &userCreatedAt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to scan user: %v", err)
 			}
@@ -254,7 +254,7 @@ func GetRoomByUserId(userId string) (*models.Room, error) {
 	room.VotesRevealed = false
 
 	rows, err := DB.Query(`
-		SELECT u.id, u.name, u.created_at, u.is_online
+		SELECT u.id, u.name, u.created_at
 		FROM users u
 		JOIN room_participants rp ON u.id = rp.user_id
 		WHERE rp.room_id = $1
@@ -267,7 +267,7 @@ func GetRoomByUserId(userId string) (*models.Room, error) {
 	for rows.Next() {
 		user := new(models.User)
 		var userCreatedAt time.Time
-		err := rows.Scan(&user.Id, &user.Name, &userCreatedAt, &user.IsOnline)
+		err := rows.Scan(&user.Id, &user.Name, &userCreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %v", err)
 		}

@@ -1,14 +1,13 @@
 package session_handlers
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/scrum-poker/backend/config"
 	"github.com/scrum-poker/backend/db"
-	"github.com/scrum-poker/backend/models"
 	"github.com/scrum-poker/backend/session"
 	"github.com/scrum-poker/backend/utils"
-	"github.com/scrum-poker/backend/websocket"
-	"net/http"
 )
 
 func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +51,6 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Secure:   config.Cfg.Cookie.Secure,
 		SameSite: config.Cfg.Cookie.SameSite,
 	})
-
-	if err := db.UpdateUserOnlineStatus(userId, true); err != nil {
-		http.Error(w, "Failed to update user status", http.StatusInternalServerError)
-		return
-	}
 
 	utils.PrepareJSONResponse(w, http.StatusCreated, map[string]string{
 		"sessionId": sessionID,
@@ -111,23 +105,13 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpdateUserOnlineStatus(existingSession.UserId, true); err != nil {
-		http.Error(w, "Failed to update user status", http.StatusInternalServerError)
-		return
-	}
-
+	// Online status is determined by WebSocket connection, not stored in DB
+	// The frontend will receive online/offline messages via WebSocket
 	response := map[string]interface{}{
 		"session": existingSession.ToJSON(),
 		"user":    user.ToJSON(),
 		"room":    room.ToJSON(),
 	}
-	message := &models.Message{
-		Action: models.ActionTypeOnline,
-		Payload: map[string]interface{}{
-			"userId": existingSession.UserId,
-		},
-	}
-	websocket.GlobalHub.Broadcast(roomId, message)
 	utils.PrepareJSONResponse(w, http.StatusOK, response)
 }
 

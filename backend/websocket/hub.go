@@ -2,218 +2,162 @@ package websocket
 
 import (
 	"encoding/json"
-	"github.com/scrum-poker/backend/db"
-	"github.com/scrum-poker/backend/models"
-	"github.com/scrum-poker/backend/session"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/scrum-poker/backend/db"
+	"github.com/scrum-poker/backend/models"
+	"github.com/scrum-poker/backend/session"
 )
 
 var GlobalHub *Hub
 
-func Init() {
-	GlobalHub = newHub()
-	go GlobalHub.run()
-
-	session.InitSessionManager(func(roomId string, msg *models.Message) {
-		GlobalHub.Broadcast(roomId, msg)
-	})
-}
-
-type RoomData struct {
-	clients map[*Client]bool
-	mu      sync.Mutex
-}
-
 type Hub struct {
-	rooms      map[string]*RoomData
-	roomsMu    sync.RWMutex
-	register   chan *Client
-	unregister chan *Client
+	rooms map[string]map[*Client]bool
+	mu    sync.RWMutex
 }
 
-func newHub() *Hub {
-	return &Hub{
-		rooms:      make(map[string]*RoomData),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+func Init() {
+	GlobalHub = &Hub{
+		rooms: make(map[string]map[*Client]bool),
 	}
+
+	session.InitSessionManager(
+		GlobalHub.Broadcast,
+		GlobalHub.IsUserConnected,
+	)
 }
 
-func (h *Hub) run() {
-	for {
-		select {
-		case client := <-h.register:
-			go h.handleRegistration(client)
-		case client := <-h.unregister:
-			go h.handleUnregistration(client)
-		}
-	}
-}
+func (h *Hub) RegisterClient(c *Client) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-func (h *Hub) getOrCreateRoom(roomId string) *RoomData {
-	h.roomsMu.RLock()
-	roomData, exists := h.rooms[roomId]
-	h.roomsMu.RUnlock()
-
+	clients, exists := h.rooms[c.roomId]
 	if !exists {
-		h.roomsMu.Lock()
-		roomData, exists = h.rooms[roomId]
-		if !exists {
-			roomData = &RoomData{
-				clients: make(map[*Client]bool),
-			}
-			h.rooms[roomId] = roomData
-		}
-		h.roomsMu.Unlock()
+		clients = make(map[*Client]bool)
+		h.rooms[c.roomId] = clients
 	}
 
-	return roomData
-}
-
-func (h *Hub) handleRegistration(c *Client) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Recovered from panic in registration: %v", r)
-		}
-	}()
-
-	roomData := h.getOrCreateRoom(c.roomId)
-
-	lockAcquired := make(chan bool, 1)
-	go func() {
-		roomData.mu.Lock()
-		lockAcquired <- true
-	}()
-
-	select {
-	case <-lockAcquired:
-		defer roomData.mu.Unlock()
-
-		for existingClient := range roomData.clients {
-			if existingClient.userId == c.userId {
-				delete(roomData.clients, existingClient)
-				close(existingClient.send)
-
-				if existingClient.conn != nil {
-					existingClient.conn.Close()
-				}
+	for existing := range clients {
+		if existing.userId == c.userId {
+			delete(clients, existing)
+			close(existing.send)
+			if existing.conn != nil {
+				existing.conn.Close()
 			}
 		}
-
-		roomData.clients[c] = true
-
-		select {
-		case c.registrationComplete <- true:
-		default:
-		}
-
-	case <-time.After(5 * time.Second):
-		log.Printf("Timeout waiting for lock in registration for client %s", c.userId)
-		select {
-		case c.registrationComplete <- false:
-		default:
-		}
 	}
+
+	clients[c] = true
+
+	go h.notifyUserOnline(c.roomId, c.userId)
 }
 
-func (h *Hub) handleUnregistration(c *Client) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Recovered from panic in unregistration: %v", r)
-		}
-	}()
+func (h *Hub) UnregisterClient(c *Client) {
+	h.mu.Lock()
 
-	h.roomsMu.RLock()
-	roomData, roomExists := h.rooms[c.roomId]
-	h.roomsMu.RUnlock()
-
-	if !roomExists {
-		log.Printf("Room %s not found for client %s", c.roomId, c.userId)
+	clients, exists := h.rooms[c.roomId]
+	if !exists {
+		h.mu.Unlock()
 		return
 	}
 
-	lockAcquired := make(chan bool, 1)
-	go func() {
-		roomData.mu.Lock()
-		lockAcquired <- true
-	}()
+	if _, ok := clients[c]; !ok {
+		h.mu.Unlock()
+		return
+	}
 
-	select {
-	case <-lockAcquired:
-		defer roomData.mu.Unlock()
+	delete(clients, c)
+	close(c.send)
 
-		if _, ok := roomData.clients[c]; ok {
-			delete(roomData.clients, c)
-
-			select {
-			case c.send <- []byte(`{"type":"disconnect"}`):
-			default:
-			}
-
-			close(c.send)
-
-			shouldDeleteRoom := len(roomData.clients) == 0
-			roomData.mu.Unlock()
-
-			if shouldDeleteRoom {
-				h.roomsMu.Lock()
-				delete(h.rooms, c.roomId)
-				h.roomsMu.Unlock()
-			}
-
-			roomData.mu.Lock()
-
-			go h.handleDisconnection(c)
+	userStillConnected := false
+	for existing := range clients {
+		if existing.userId == c.userId {
+			userStillConnected = true
+			break
 		}
-	case <-time.After(5 * time.Second):
-		log.Printf("Timeout waiting for lock in unregistration for client %s", c.userId)
-		if c.conn != nil {
-			c.conn.Close()
-		}
+	}
+
+	if len(clients) == 0 {
+		delete(h.rooms, c.roomId)
+	}
+
+	h.mu.Unlock()
+
+	if !userStillConnected {
+		go h.handleUserOffline(c.roomId, c.userId)
 	}
 }
 
-func (h *Hub) handleDisconnection(client *Client) {
-	roomId := client.roomId
-	userId := client.userId
+func (h *Hub) notifyUserOnline(roomId, userId string) {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		log.Printf("Error getting room %s: %v", roomId, err)
+		return
+	}
 
-	go func() {
-		room, err := db.GetRoom(roomId)
-		if err != nil {
-			log.Printf("Error getting room %s: %v", roomId, err)
-			return
+	if _, ok := room.Participants[userId]; !ok {
+		return
+	}
+
+	h.Broadcast(roomId, &models.Message{
+		Action:  models.ActionTypeOnline,
+		Payload: map[string]interface{}{"userId": userId},
+	})
+}
+
+func (h *Hub) handleUserOffline(roomId, userId string) {
+	time.Sleep(100 * time.Millisecond)
+
+	if h.IsUserConnected(roomId, userId) {
+		return
+	}
+
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		log.Printf("Error getting room %s: %v", roomId, err)
+		return
+	}
+
+	if _, ok := room.Participants[userId]; !ok {
+		return
+	}
+
+	// Refresh or create session for potential reconnection
+	existingSession, err := db.GetSessionByUserID(userId)
+	if err == nil && existingSession != nil {
+		existingSession.Refresh(session.TTL)
+		if err := db.UpdateSession(existingSession); err != nil {
+			log.Printf("Error updating session: %v", err)
 		}
-
-		if _, ok := room.Participants[userId]; ok {
-			if err := db.UpdateUserOnlineStatus(userId, false); err != nil {
-				log.Printf("Error updating user online status: %v", err)
-				return
-			}
-
-			existingSession, err := db.GetSessionByUserID(userId)
-			if err == nil && existingSession != nil {
-				existingSession.Refresh(session.TTL)
-				if err := db.UpdateSession(existingSession); err != nil {
-					log.Printf("Error updating session: %v", err)
-				}
-			} else {
-				_, err = session.GlobalManager.CreateSession(userId, roomId)
-				if err != nil {
-					log.Printf("Error creating session: %v", err)
-				}
-			}
-
-			message := &models.Message{
-				Action: models.ActionTypeOffline,
-				Payload: map[string]interface{}{
-					"userId": userId,
-				},
-			}
-			h.Broadcast(roomId, message)
+	} else {
+		if _, err := session.GlobalManager.CreateSession(userId, roomId); err != nil {
+			log.Printf("Error creating session: %v", err)
 		}
-	}()
+	}
+
+	h.Broadcast(roomId, &models.Message{
+		Action:  models.ActionTypeOffline,
+		Payload: map[string]interface{}{"userId": userId},
+	})
+}
+
+func (h *Hub) IsUserConnected(roomId, userId string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	clients, exists := h.rooms[roomId]
+	if !exists {
+		return false
+	}
+
+	for c := range clients {
+		if c.userId == userId {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Hub) Broadcast(roomId string, msg *models.Message) {
@@ -223,27 +167,41 @@ func (h *Hub) Broadcast(roomId string, msg *models.Message) {
 		return
 	}
 
-	h.roomsMu.RLock()
-	roomData, roomExists := h.rooms[roomId]
-	h.roomsMu.RUnlock()
-
-	if !roomExists {
+	h.mu.RLock()
+	clients, exists := h.rooms[roomId]
+	if !exists {
+		h.mu.RUnlock()
 		return
 	}
 
-	roomData.mu.Lock()
-	defer roomData.mu.Unlock()
+	clientList := make([]*Client, 0, len(clients))
+	for c := range clients {
+		clientList = append(clientList, c)
+	}
+	h.mu.RUnlock()
 
-	for client := range roomData.clients {
+	for _, c := range clientList {
 		select {
-		case client.send <- msgBytes:
+		case c.send <- msgBytes:
 		default:
-			select {
-			case h.unregister <- client:
-			default:
-				log.Printf("Failed to queue unregister for client %s - channel full", client.userId)
-			}
-			delete(roomData.clients, client)
+			go h.UnregisterClient(c)
 		}
 	}
+}
+
+// GetConnectedUserIds returns all connected user IDs for a room
+func (h *Hub) GetConnectedUserIds(roomId string) []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	clients, exists := h.rooms[roomId]
+	if !exists {
+		return nil
+	}
+
+	userIds := make([]string, 0, len(clients))
+	for c := range clients {
+		userIds = append(userIds, c.userId)
+	}
+	return userIds
 }

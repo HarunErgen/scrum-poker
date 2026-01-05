@@ -3,14 +3,13 @@ package websocket
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/scrum-poker/backend/logic/message_logic"
-	"github.com/scrum-poker/backend/models"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/scrum-poker/backend/logic/message_logic"
+	"github.com/scrum-poker/backend/models"
 )
 
 const (
@@ -34,40 +33,22 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	hub                  *Hub
-	conn                 *websocket.Conn
-	send                 chan []byte
-	roomId               string
-	userId               string
-	registrationComplete chan bool
-	lastPingTime         time.Time
-	mu                   sync.Mutex
-}
-
-func newClient(hub *Hub, conn *websocket.Conn, roomId, userId string) *Client {
-	return &Client{
-		hub:                  hub,
-		conn:                 conn,
-		send:                 make(chan []byte, 256),
-		roomId:               roomId,
-		userId:               userId,
-		registrationComplete: make(chan bool, 1),
-		lastPingTime:         time.Now(),
-	}
+	hub    *Hub
+	conn   *websocket.Conn
+	send   chan []byte
+	roomId string
+	userId string
 }
 
 func (c *Client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
+		c.hub.UnregisterClient(c)
 		c.conn.Close()
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		c.mu.Lock()
-		c.lastPingTime = time.Now()
-		c.mu.Unlock()
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
@@ -114,6 +95,7 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
+			// Batch pending messages
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
@@ -141,28 +123,18 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, roomId, userId st
 		return
 	}
 
-	client := newClient(hub, conn, roomId, userId)
-
-	select {
-	case hub.register <- client:
-	case <-time.After(2 * time.Second):
-		log.Printf("Timeout sending registration request for client %s", userId)
-		conn.Close()
-		return
+	client := &Client{
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan []byte, 256),
+		roomId: roomId,
+		userId: userId,
 	}
 
-	select {
-	case success := <-client.registrationComplete:
-		if success {
-			go client.writePump()
-			go client.readPump()
-		} else {
-			log.Printf("Registration failed for user %s", userId)
-			conn.Close()
-		}
-	case <-time.After(10 * time.Second):
-		log.Printf("Registration confirmation timeout for user %s", userId)
-		conn.Close()
-		return
-	}
+	// Register directly - no channels needed
+	hub.RegisterClient(client)
+
+	// Start pumps
+	go client.writePump()
+	go client.readPump()
 }
