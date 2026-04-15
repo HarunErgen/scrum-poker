@@ -1,6 +1,6 @@
 # Scrum Poker Web App
 
-**🔗 Live Demo:** [https://scrumpoker.website/](https://scrumpoker.website/)
+**🔗 Live Demo:** [https://scrumpoker.harunergen.com/](https://scrumpoker.harunergen.com/)
 
 Scrum Poker is a real-time estimation tool built for Agile teams to collaboratively plan sprints. Participants can create or join rooms, submit task estimates using the Fibonacci sequence, and reveal votes in sync—facilitating transparent, fast-paced planning meetings.
 
